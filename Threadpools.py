@@ -207,6 +207,8 @@ class FetchDataWorker(QRunnable):
             # self.set_progress_bar(100, "Finished loading data")
             self.signals.progress_bar.emit(80, 100, "Finished Fetching data")
 
+            #Fetch favorite stream ids from userdata.ini
+
             print("setting url in streaming data")
             #Make streaming URL in each entry except for the series
             for tab_name in entries_per_stream_type.keys():
@@ -221,6 +223,10 @@ class FetchDataWorker(QRunnable):
                         entries_per_stream_type[tab_name][idx]["url"] = f"{self.server}/{stream_type}/{self.username}/{self.password}/{stream_id}.{container_extension}"
                     else:
                         entries_per_stream_type[tab_name][idx]["url"] = None
+
+                    #Check if stream id is in favorites list in userdata.ini
+
+                    #Add "favorite" parameter to entries_per_stream_type and set to True or False depending if inside userdata.ini
 
                     #Create stream type key for series data
                     if stream_type == 'series':

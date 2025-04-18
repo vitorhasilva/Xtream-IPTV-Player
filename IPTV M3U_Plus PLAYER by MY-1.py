@@ -27,7 +27,7 @@ from PyQt5.QtWidgets import (
 )
 
 from AccountManager import AccountManager
-from CustomPyQtWidgets import MovieInfoBox, SeriesInfoBox
+from CustomPyQtWidgets import LiveInfoBox, MovieInfoBox, SeriesInfoBox
 from Threadpools import FetchDataWorker, SearchWorker, EPGWorker, MovieInfoFetcher, SeriesInfoFetcher, ImageFetcher
 
 CUSTOM_USER_AGENT = (
@@ -42,10 +42,11 @@ is_linux    = sys.platform.startswith('linux')
 class IPTVPlayerApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("IPTV Player V1.01")
+        self.setWindowTitle("IPTV Player V1.02")
         self.resize(1300, 900)
 
         self.user_data_file = 'userdata.ini'
+        self.favorites_file = 'favorites.json'
 
         self.path_to_window_icon    = path.abspath(path.join(path.dirname(__file__), 'Images/TV_icon.ico'))
         self.path_to_no_img         = path.abspath(path.join(path.dirname(__file__), 'Images/no_image.jpg'))
@@ -88,13 +89,6 @@ class IPTVPlayerApp(QMainWindow):
         self.category_search_history_list       = []
         self.category_search_history_list_idx   = [0]
         self.max_search_history_size            = 30
-
-        #Used for knowing what is currently shown in info box
-        self.currently_clicked_streaming_item = {
-            'LIVE': [],
-            'Movies': [],
-            'Series': []
-        }
 
         #Previous clicked item for preventing loading the same item multiple times
         self.prev_clicked_category_item = {
@@ -164,7 +158,8 @@ class IPTVPlayerApp(QMainWindow):
         self.live_tab_layout.addWidget(self.streaming_search_bar_live, 0, 1)
         self.live_tab_layout.addWidget(self.category_list_live, 1, 0)
         self.live_tab_layout.addWidget(self.streaming_list_live, 1, 1)
-        self.live_tab_layout.addWidget(self.live_EPG_info_box, 0, 2, 2, 1)
+        # self.live_tab_layout.addWidget(self.live_EPG_info_box, 0, 2, 2, 1)
+        self.live_tab_layout.addWidget(self.live_info_box, 0, 2, 2, 1)
 
         self.movies_tab_layout.addWidget(self.category_search_bar_movies, 0, 0)
         self.movies_tab_layout.addWidget(self.streaming_search_bar_movies, 0, 1)
@@ -460,59 +455,10 @@ class IPTVPlayerApp(QMainWindow):
             """)
 
     def initInfoBoxes(self):
-        #Create LIVE TV info box
-        self.live_EPG_info_box          = QWidget()
-        self.live_EPG_info_box_layout   = QVBoxLayout(self.live_EPG_info_box)
-
-        #Create Live TV Channel name label
-        self.EPG_box_label = QLabel("Select channel to view Live TV info")
-        self.EPG_box_label.setFont(QFont('Arial', 14, QFont.Bold))
-
-        #Enable wordwrap for TV channel name
-        self.EPG_box_label.setWordWrap(True)
-
-        #Create entry info window
-        self.live_EPG_info = QTreeWidget()
-        self.live_EPG_info.setColumnCount(2)
-        self.live_EPG_info.setHeaderLabels(["Date", "From", "To", "Name"])
-
-        #Set column widths of EPG info window
-        self.live_EPG_info.setColumnWidth(0, 120)
-        self.live_EPG_info.setColumnWidth(1, 50)
-        self.live_EPG_info.setColumnWidth(2, 50)
-
-        #Create favorites button
-        self.live_fav_button = QPushButton("")
-        self.live_fav_button.setIcon(self.favorites_icon)
-        self.live_fav_button.setFlat(True)
-        # self.live_fav_button.setData(Qt.UserRole, {'Favorite': False})
-        self.live_fav_button.setProperty("Favorite", False)
-        self.live_fav_button.clicked.connect(lambda e: self.favButtonPressed(e, self.live_fav_button, "Live"))
-
-        #Add TV channel label and EPG data to info box
-        self.live_EPG_info_box_layout.addWidget(self.EPG_box_label)
-        self.live_EPG_info_box_layout.addWidget(self.live_fav_button)
-        self.live_EPG_info_box_layout.addWidget(self.live_EPG_info)
-
         #Create Movies and Series info box
+        self.live_info_box   = LiveInfoBox(self)
         self.movies_info_box = MovieInfoBox(self)
         self.series_info_box = SeriesInfoBox(self)
-
-    def favButtonPressed(self, e, btn, stream_type):
-        print(f"Button pressed: {stream_type}")
-
-        #Get favorite data
-        btn_data = btn.property("Favorite")
-
-        print(btn_data)
-
-        #Toggle Favorite button colour
-        if btn_data:
-            btn.setProperty("Favorite", False)
-            btn.setIcon(self.favorites_icon)
-        else:
-            btn.setProperty("Favorite", True)
-            btn.setIcon(self.favorites_icon_colour)
 
     def initHomeTab(self):
         #Create lists to show previously watched content
@@ -1106,6 +1052,75 @@ class IPTVPlayerApp(QMainWindow):
         except Exception as e:
             print(f"Failed processing image: {e}")
 
+    def favButtonPressed(self, stream_type, info_box):
+        #Get current selected item and stream id
+        current_sel_item = self.streaming_list_widgets[stream_type].currentItem()
+
+        #Check if an item is selected
+        if (not current_sel_item) or (self.series_navigation_level != 0):
+            #Otherwise return from function
+            return
+
+        data = current_sel_item.data(Qt.UserRole)
+
+        #Check if item data is valid
+        if not data:
+            return
+
+        #Check if stream type is series
+        if stream_type == "Series":
+            stream_id = data.get('series_id', -1)
+        else:
+            stream_id = data.get('stream_id', -1)
+
+        is_fav = False
+
+        #loop through all streaming entries
+        for idx, entry in enumerate(self.entries_per_stream_type[stream_type]):
+            #Match to current data streaming id
+            if entry['stream_id' if not (stream_type == "Series") else 'series_id'] == stream_id:
+                #Check if item is favorite
+                is_fav = self.entries_per_stream_type[stream_type][idx].get('favorite', False)
+
+                #toggle favorite
+                is_fav = not is_fav
+
+                #Set favorite parameter
+                self.entries_per_stream_type[stream_type][idx]['favorite'] = is_fav
+
+        #Change fav button colour
+        info_box.setFavorite(is_fav)
+        
+        #Set favorite parameter
+        data['favorite'] = is_fav
+
+        #Set data to currently selected item
+        current_sel_item.setData(Qt.UserRole, data)
+
+        fav_data = {}
+
+        #Read favorites data file
+        fav_file_path = path.join(path.dirname(path.abspath(__file__)), self.favorites_file)
+        #Check if cache file exists
+        if path.isfile(fav_file_path):
+            with open(self.favorites_file, 'r') as fav_file:
+                fav_data = json.load(fav_file)
+
+        if is_fav:
+            #Check if stream ids exists in file
+            if fav_data.get('stream_ids' if not (stream_type == "Series") else 'series_ids', 0):
+                fav_data['stream_ids' if not (stream_type == "Series") else 'series_ids'].append(stream_id)
+            else:
+                # fav_data = {'stream_ids':[123]}
+                fav_data['stream_ids' if not (stream_type == "Series") else 'series_ids'] = [stream_id]
+        else:
+            #Check if stream ids exists in file
+            if fav_data.get('stream_ids' if not (stream_type == "Series") else 'series_ids', 0):
+                fav_data['stream_ids' if not (stream_type == "Series") else 'series_ids'].remove(stream_id)
+
+        with open(self.favorites_file, 'w') as fav_file:
+            json.dump(fav_data, fav_file, indent=4)
+
     def category_item_clicked(self, clicked_item):
         try:
             sender = self.sender()
@@ -1159,10 +1174,13 @@ class IPTVPlayerApp(QMainWindow):
                     self.streaming_list_widgets[stream_type].addItem(item)
 
                 elif selected_item_text == self.fav_categories_text:
-                    pass
-                    #Check if favorite is selected
-                    # if entry['favorite'] == 1:
-                    #     pass
+                    #Check if item is favorite
+                    if entry['favorite'] == True:
+                        item = QListWidgetItem(entry['name'])
+                        item.setData(Qt.UserRole, entry)
+
+                        self.currently_loaded_streams[stream_type].append(entry)
+                        self.streaming_list_widgets[stream_type].addItem(item)
 
                 elif entry['category_id'] == category_id:
                     item = QListWidgetItem(entry['name'])
@@ -1170,6 +1188,13 @@ class IPTVPlayerApp(QMainWindow):
 
                     self.currently_loaded_streams[stream_type].append(entry)
                     self.streaming_list_widgets[stream_type].addItem(item)
+
+            #Check if list is empty after process
+            if self.streaming_list_widgets[stream_type].count() == 0:
+                #Add list is empty text
+                item = QListWidgetItem("No items in list...")
+
+                self.streaming_list_widgets[stream_type].addItem(item)
 
             self.animate_progress(0, 100, "Loading finished")
 
@@ -1194,13 +1219,16 @@ class IPTVPlayerApp(QMainWindow):
     def ProcessEPGData(self, epg_data):
         try:
             #Clear EPG data
-            self.live_EPG_info.clear()
+            self.live_info_box.live_EPG_info.clear()
+
+            # is_fav = self.streaming_list_live.currentItem().data(Qt.UserRole).get('favorite', False)
+            # self.live_info_box.setFavorite(is_fav)
 
             #Check if EPG data is empty
             if not epg_data:
                 item = QTreeWidgetItem(["??-??-????", "??:??", "??:??", "No EPG Data Available..."])
 
-                self.live_EPG_info.addTopLevelItem(item)
+                self.live_info_box.live_EPG_info.addTopLevelItem(item)
 
                 self.set_progress_bar(100, "No EPG data")
                 return
@@ -1238,13 +1266,13 @@ class IPTVPlayerApp(QMainWindow):
                     item.addChild(desc)
 
                     #Add label widget to description. This way it is word wrapped correctly
-                    self.live_EPG_info.setItemWidget(desc, 3, label)
+                    self.live_info_box.live_EPG_info.setItemWidget(desc, 3, label)
 
                     #Append item to list
                     items.append(item)
 
             #Add all items to EPG treeview
-            self.live_EPG_info.addTopLevelItems(items)
+            self.live_info_box.live_EPG_info.addTopLevelItems(items)
 
             #Update progress bar
             self.set_progress_bar(100, "Loaded EPG data")
@@ -1262,6 +1290,10 @@ class IPTVPlayerApp(QMainWindow):
             if (clicked_item == self.prev_clicked_streaming_item):
                 return
 
+            #Check if not at navigation top level
+            if self.series_navigation_level != 0:
+                return
+
             #Save to previous item
             self.prev_clicked_streaming_item = clicked_item
 
@@ -1269,19 +1301,18 @@ class IPTVPlayerApp(QMainWindow):
             clicked_item_text = clicked_item.text()
             clicked_item_data = clicked_item.data(Qt.UserRole)
 
+            #Check if item data is valid
+            if not clicked_item_data:
+                return
+
+            #Get if clicked item is favorite
+            is_fav = clicked_item_data.get('favorite', False)
+
             #Get stream type
             try:
                 stream_type = clicked_item_data['stream_type']
             except:
                 stream_type = ''
-
-            #Check if its favorite
-            try:
-                is_fav = clicked_item_data['favorite']
-            except:
-                is_fav = False
-
-            # print(f"single click stream type {stream_type}")
 
             #Skip when back button or already loaded series info
             if clicked_item.text() == self.go_back_text or (stream_type == 'series' and self.series_navigation_level > 0):
@@ -1291,19 +1322,25 @@ class IPTVPlayerApp(QMainWindow):
             if stream_type == 'live':
                 self.set_progress_bar(0, "Loading EPG data")
 
+                #Set favorite button according to favorite value
+                self.live_info_box.setFavorite(is_fav)
+
                 #Set TV channel name in info window
-                self.EPG_box_label.setText(f"{clicked_item_data['name']}")
+                self.live_info_box.EPG_box_label.setText(f"{clicked_item_data['name']}")
 
                 #Clear EPG data
-                self.live_EPG_info.clear()
+                self.live_info_box.live_EPG_info.clear()
                 item = QTreeWidgetItem(["...", "...", "...", "Loading EPG Data..."])
-                self.live_EPG_info.addTopLevelItem(item)
+                self.live_info_box.live_EPG_info.addTopLevelItem(item)
 
                 self.startEPGWorker(clicked_item_data['stream_id'])
 
             #Show movie info if movie clicked
             elif stream_type == 'movie':
                 self.set_progress_bar(0, "Loading Movie info")
+
+                #Set favorite button according to favorite value
+                self.movies_info_box.setFavorite(is_fav)
 
                 #Set loading image
                 self.movies_info_box.cover.setPixmap(QPixmap(self.path_to_loading_img).scaledToWidth(self.series_info_box.maxCoverWidth))
@@ -1327,6 +1364,9 @@ class IPTVPlayerApp(QMainWindow):
             #Show series info if series clicked
             elif stream_type == 'series':
                 self.set_progress_bar(0, "Loading Series info")
+
+                #Set favorite button according to favorite value
+                self.series_info_box.setFavorite(is_fav)
 
                 #Set loading image
                 self.series_info_box.cover.setPixmap(QPixmap(self.path_to_loading_img).scaledToWidth(self.series_info_box.maxCoverWidth))
@@ -1359,6 +1399,10 @@ class IPTVPlayerApp(QMainWindow):
             #Get clicked item data
             clicked_item_text = clicked_item.text()
             clicked_item_data = clicked_item.data(Qt.UserRole)
+
+            #Check if item data is valid
+            if not clicked_item_data:
+                return
 
             try:
                 stream_type = clicked_item_data['stream_type']
@@ -1559,7 +1603,7 @@ class IPTVPlayerApp(QMainWindow):
 
         match e.key():
             case Qt.Key_Return:
-                list_widgets[stream_type].clear()
+                # list_widgets[stream_type].clear()
                 
                 history_list_idx[0] = 0
 
@@ -1626,6 +1670,10 @@ class IPTVPlayerApp(QMainWindow):
 
             #If searching in category list
             if list_content_type == 'category':
+                #Check if list is empty
+                if not self.currently_loaded_categories[stream_type]:
+                    return
+
                 self.category_list_widgets[stream_type].clear()
 
                 for entry in self.currently_loaded_categories[stream_type]:
@@ -1642,6 +1690,10 @@ class IPTVPlayerApp(QMainWindow):
 
             #If searching in streaming content list
             elif list_content_type == 'streaming':
+                #Check if list is empty
+                if not self.currently_loaded_streams[stream_type]:
+                    return
+
                 self.streaming_list_widgets[stream_type].clear()
 
                 match self.series_navigation_level:

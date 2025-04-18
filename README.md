@@ -12,6 +12,7 @@ Download the latest version here: [Latest releases](https://github.com/Youri666/
 - **M3U_plus Support:** Load and play live TV, movies, and series.
 - **Xtream Codes API:** Log in with Xtream credentials and dynamically load content.
 - **Categorized Playlists:** Organized into Live TV, Movies, and Series tabs for easy navigation.
+- **Favorites:** Add items to favorite and find them in the 'Favorites' category.
 - **EPG Option:** Access and download Electronic Program Guide for live TV channels.
 - **Movies and series information:** Additional movies and series information e.g. movie/series cover, description, cast, trailer, TMDB, etc.
 - **Series navigation:** Access series categories and specific episodes with efficient 'Go Back' functionality in series playlist.
@@ -25,7 +26,6 @@ Download the latest version here: [Latest releases](https://github.com/Youri666/
 
 ## **Future plans**
 - **Home tab:** Home tab with previously watched and popular movies and series.
-- **Favorites tab:** Find your favorite TV channels, movies and series.
 - **TMDB support:** Much more information about movies and series with the TMDB API.
 - **Improve startup loading time:** Improve loading time at startup by optionally loading the IPTV data from cache.
 - **Dark theme**

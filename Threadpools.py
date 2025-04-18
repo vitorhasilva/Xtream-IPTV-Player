@@ -207,7 +207,15 @@ class FetchDataWorker(QRunnable):
             # self.set_progress_bar(100, "Finished loading data")
             self.signals.progress_bar.emit(80, 100, "Finished Fetching data")
 
-            #Fetch favorite stream ids from userdata.ini
+            fav_data = {}
+
+            #Read favorites data file
+            fav_file_path = path.join(path.dirname(path.abspath(__file__)), self.parent.favorites_file)
+            #Check if cache file exists
+            if path.isfile(fav_file_path):
+                print("fav file is there")
+                with open(self.parent.favorites_file, 'r') as fav_file:
+                    fav_data = json.load(fav_file)
 
             print("setting url in streaming data")
             #Make streaming URL in each entry except for the series
@@ -215,22 +223,36 @@ class FetchDataWorker(QRunnable):
                 for idx, entry in enumerate(entries_per_stream_type[tab_name]):
                     #Get stream type. If no stream_type is found it is series
                     stream_type         = entry.get('stream_type', 'series')
-                    stream_id           = entry.get("stream_id")
+                    stream_id           = entry.get("stream_id", -1)
+                    series_id           = entry.get("series_id", -1)
                     container_extension = entry.get("container_extension", "m3u8")
 
                     #Check if stream_id is valid
                     if stream_id:
                         entries_per_stream_type[tab_name][idx]["url"] = f"{self.server}/{stream_type}/{self.username}/{self.password}/{stream_id}.{container_extension}"
+
+                        #Check if stream id is in favorites list in userdata.ini
+                        if stream_id in fav_data.get('stream_ids', []):
+                            #Add "favorite" parameter to entries_per_stream_type and set to True or False depending if inside userdata.ini
+                            entries_per_stream_type[tab_name][idx]['favorite'] = True
+                        else:
+                            entries_per_stream_type[tab_name][idx]['favorite'] = False
                     else:
                         entries_per_stream_type[tab_name][idx]["url"] = None
 
-                    #Check if stream id is in favorites list in userdata.ini
-
-                    #Add "favorite" parameter to entries_per_stream_type and set to True or False depending if inside userdata.ini
-
-                    #Create stream type key for series data
+                    #Check if stream type is series
                     if stream_type == 'series':
+                        #Create stream type key for series data
                         entries_per_stream_type[tab_name][idx]["stream_type"] = stream_type
+
+                        #Check if series_id is valid
+                        if series_id:
+                            #Check if series id is in favorites list in userdata.ini
+                            if series_id in fav_data.get('series_ids', []):
+                                #Add "favorite" parameter to entries_per_stream_type and set to True or False depending if inside userdata.ini
+                                entries_per_stream_type[tab_name][idx]['favorite'] = True
+                            else:
+                                entries_per_stream_type[tab_name][idx]['favorite'] = False
 
             #Send received data to processing function
             self.signals.finished.emit(iptv_info_data, categories_per_stream_type, entries_per_stream_type)

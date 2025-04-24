@@ -1057,8 +1057,12 @@ class IPTVPlayerApp(QMainWindow):
         current_sel_item = self.streaming_list_widgets[stream_type].currentItem()
 
         #Check if an item is selected
-        if (not current_sel_item) or (self.series_navigation_level != 0):
+        if not current_sel_item:
             #Otherwise return from function
+            return
+
+        #Check if inside series navigation
+        if self.series_navigation_level != 0 and stream_type == "Series":
             return
 
         data = current_sel_item.data(Qt.UserRole)
@@ -1290,9 +1294,9 @@ class IPTVPlayerApp(QMainWindow):
             if (clicked_item == self.prev_clicked_streaming_item):
                 return
 
-            #Check if not at navigation top level
-            if self.series_navigation_level != 0:
-                return
+            # #Check if not at navigation top level
+            # if (self.series_navigation_level != 0):
+            #     return
 
             #Save to previous item
             self.prev_clicked_streaming_item = clicked_item
@@ -1363,6 +1367,10 @@ class IPTVPlayerApp(QMainWindow):
 
             #Show series info if series clicked
             elif stream_type == 'series':
+                #Check if not at navigation top level
+                if (self.series_navigation_level != 0):
+                    return
+
                 self.set_progress_bar(0, "Loading Series info")
 
                 #Set favorite button according to favorite value
@@ -1400,10 +1408,11 @@ class IPTVPlayerApp(QMainWindow):
             clicked_item_text = clicked_item.text()
             clicked_item_data = clicked_item.data(Qt.UserRole)
 
-            #Check if item data is valid
-            if not clicked_item_data:
+            #Check if item data is valid and not go back item
+            if not clicked_item_data and clicked_item_text != self.go_back_text:
                 return
 
+            #Try to get stream type from item data
             try:
                 stream_type = clicked_item_data['stream_type']
             except:

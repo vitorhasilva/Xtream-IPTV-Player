@@ -12,10 +12,10 @@ from lxml import etree, html
 from datetime import datetime
 from dateutil import parser, tz
 import xml.etree.ElementTree as ET
-from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QColor
+from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QColor, QDesktopServices
 from PyQt5.QtCore import (
     Qt, QTimer, QPropertyAnimation, QEasingCurve, QSize, QObject, pyqtSignal, 
-    QRunnable, pyqtSlot, QThreadPool, QModelIndex, QAbstractItemModel, QVariant
+    QRunnable, pyqtSlot, QThreadPool, QModelIndex, QAbstractItemModel, QVariant, QUrl
 )
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import (
@@ -30,6 +30,8 @@ from AccountManager import AccountManager
 from CustomPyQtWidgets import LiveInfoBox, MovieInfoBox, SeriesInfoBox
 from Threadpools import FetchDataWorker, SearchWorker, EPGWorker, MovieInfoFetcher, SeriesInfoFetcher, ImageFetcher
 
+CURRENT_VERSION = "V1.02.00"
+
 CUSTOM_USER_AGENT = (
     "Connection: Keep-Alive User-Agent: okhttp/5.0.0-alpha.2 "
     "Accept-Encoding: gzip, deflate"
@@ -39,10 +41,13 @@ is_windows  = sys.platform.startswith('win')
 is_mac      = sys.platform.startswith('darwin')
 is_linux    = sys.platform.startswith('linux')
 
+GITHUB_REPO = "Youri666/Xtream-m3u_plus-IPTV-Player"
+SUPPORT_URL = "https://buymeacoffee.com/ghostlord_007"
+
 class IPTVPlayerApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("IPTV Player V1.02")
+        self.setWindowTitle(f"IPTV Player {CURRENT_VERSION}")
         self.resize(1300, 900)
 
         self.user_data_file = 'userdata.ini'
@@ -600,14 +605,59 @@ class IPTVPlayerApp(QMainWindow):
         self.reload_data_btn.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload))
         self.reload_data_btn.setToolTip("Click this to manually reload the IPTV data.\nNote that this only has effect if \'Startup with cached data\' is checked.")
 
+        self.update_checker = QPushButton("Check for updates")
+        self.update_checker.clicked.connect(self.check_for_updates)
+
+        self.support_me_btn = QPushButton("Support me :)")
+        self.support_me_btn.clicked.connect(self.open_support_link)
+
         #Add widgets to settings tab layout
         self.settings_layout.addWidget(self.address_book_button,            0, 0)
         self.settings_layout.addWidget(self.choose_player_button,           0, 1)
         self.settings_layout.addWidget(self.keep_on_top_checkbox,           1, 0)
         self.settings_layout.addWidget(QLabel("Default sorting order: "),   2, 0)
         self.settings_layout.addWidget(self.default_sorting_order_box,      2, 1)
+        self.settings_layout.addWidget(self.update_checker,                 3, 0)
+        self.settings_layout.addWidget(self.support_me_btn,                 4, 0)
         # self.settings_layout.addWidget(self.cache_on_startup_checkbox,  2, 0)
         # self.settings_layout.addWidget(self.reload_data_btn,            3, 0)
+
+    def check_for_updates(self):
+        try:
+            #Create github api url to fetch data from
+            git_api_url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+
+            #Request data from url
+            git_resp = requests.get(git_api_url, timeout=5)
+
+            #Get data and latest version
+            data = git_resp.json()
+            latest_version = data['tag_name']
+
+            #Check if current version is up to date
+            if latest_version != CURRENT_VERSION:
+                #If not up to date ask if user wants to go to download page
+                reply = QMessageBox.question(self, 'Update Available',
+                                             f"A new version ({latest_version}) is available.\n"
+                                             "Do you want to visit the download page?",
+                                             QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
+
+                #If user wants to go to download page, open latest version page
+                if reply == QMessageBox.Yes:
+                    latest_version_url = data['html_url']
+
+                    QDesktopServices.openUrl(QUrl(latest_version_url))
+
+            #Current version is up to date
+            else:
+                QMessageBox.information(self, 'No Update', "You are using the latest version.")
+
+        except Exception as e:
+            print(e)
+
+    def open_support_link(self):
+        #Open URL
+        QDesktopServices.openUrl(QUrl(SUPPORT_URL))
 
     def initProgressBar(self):
         #Create progress bar

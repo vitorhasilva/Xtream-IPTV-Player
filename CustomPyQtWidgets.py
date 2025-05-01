@@ -22,7 +22,7 @@ class LiveInfoBox(QWidget):
 
         self.parent = parent
 
-        #Create LIVE TV info box
+        #Create LIVE TV info box layout
         self.live_EPG_info_box_layout = QVBoxLayout(self)
 
         #Create Live TV Channel name label
@@ -31,6 +31,15 @@ class LiveInfoBox(QWidget):
 
         #Enable wordwrap for TV channel name
         self.EPG_box_label.setWordWrap(True)
+
+        self.maxCoverHeight = 200
+
+        #Create cover image
+        self.cover          = QLabel()
+        self.cover_img      = QPixmap(self.parent.path_to_no_img)
+        self.cover.setAlignment(Qt.AlignTop)
+        self.cover.setPixmap(self.cover_img.scaledToHeight(self.maxCoverHeight))
+        self.cover.setMaximumHeight(self.maxCoverHeight)
 
         #Create entry info window
         self.live_EPG_info = QTreeWidget()
@@ -45,13 +54,19 @@ class LiveInfoBox(QWidget):
         #Create favorites button
         self.fav_button = QPushButton("")
         self.fav_button.setStyleSheet("text-align: left")
+        self.fav_button.setFixedWidth(25)
         self.fav_button.setFlat(True)
         self.fav_button.setIcon(self.parent.favorites_icon)
         self.fav_button.clicked.connect(lambda: self.parent.favButtonPressed("LIVE", self))
 
+        #Create title layout with favorites button
+        self.title_layout = QHBoxLayout()
+        self.title_layout.addWidget(self.EPG_box_label)
+        self.title_layout.addWidget(self.fav_button)
+
         #Add TV channel label and EPG data to info box
-        self.live_EPG_info_box_layout.addWidget(self.EPG_box_label)
-        self.live_EPG_info_box_layout.addWidget(self.fav_button)
+        self.live_EPG_info_box_layout.addLayout(self.title_layout)
+        self.live_EPG_info_box_layout.addWidget(self.cover)
         self.live_EPG_info_box_layout.addWidget(self.live_EPG_info)
 
     def setFavorite(self, is_fav):
@@ -67,6 +82,9 @@ class MovieInfoBox(QScrollArea):
         super().__init__()
 
         self.parent = parent
+
+        self.yt_code    = None
+        self.tmdb_code  = None
 
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -89,7 +107,7 @@ class MovieInfoBox(QScrollArea):
 
         #Create favorites button
         self.fav_button = QPushButton("")
-        self.fav_button.setStyleSheet("text-align: left")
+        self.fav_button.setFixedWidth(25)
         self.fav_button.setFlat(True)
         self.fav_button.setIcon(self.parent.favorites_icon)
         self.fav_button.clicked.connect(lambda: self.parent.favButtonPressed("Movies", self))
@@ -104,8 +122,24 @@ class MovieInfoBox(QScrollArea):
         self.director       = QLabel("Director: ?")
         self.cast           = QLabel("Cast: ?")
         self.description    = QLabel("Description: ?")
-        self.trailer        = QLabel("Trailer: ?")
-        self.tmdb           = QLabel("TMDB: ?")
+
+        self.trailer = QLabel()
+        self.trailer.setAlignment(Qt.AlignLeft)
+        self.trailer.setFixedWidth(50)
+        self.trailer.setEnabled(False)
+
+        self.tmdb = QLabel()
+        self.tmdb.setAlignment(Qt.AlignLeft)
+        self.tmdb.setFixedWidth(50)
+        self.tmdb.setEnabled(False)
+
+        #Set YouTube icon
+        self.yt_img = QPixmap(self.parent.path_to_yt_img)
+        self.trailer.setPixmap(self.yt_img.scaledToHeight(30))
+
+        #Set TMDB icon
+        self.tmdb_img = QPixmap(self.parent.path_to_tmdb_img)
+        self.tmdb.setPixmap(self.tmdb_img.scaledToHeight(30))
 
         self.trailer.mousePressEvent    = self.TrailerClicked
         self.tmdb.mousePressEvent       = self.TmdbClicked
@@ -121,37 +155,43 @@ class MovieInfoBox(QScrollArea):
         self.director.setWordWrap(True)
         self.cast.setWordWrap(True)
         self.description.setWordWrap(True)
-        self.trailer.setWordWrap(True)
-        self.tmdb.setWordWrap(True)
 
-        self.layout.addWidget(self.name,            0, 0, 1, 2)
+        #Create layout with title and favorite button
+        self.title_layout = QHBoxLayout()
+        self.title_layout.addWidget(self.name)
+        self.title_layout.addWidget(self.fav_button)
+
+        #Create layout with YouTube and TMDB icon next to each other
+        self.links_layout = QHBoxLayout()
+        self.links_layout.addWidget(self.trailer)
+        self.links_layout.addWidget(self.tmdb)
+        self.links_layout.addStretch(1)
+
+        #Add widgets
+        self.layout.addLayout(self.title_layout,    0, 0, 1, 2)
         self.layout.addWidget(self.cover,           1, 0, 10, 1)
-        self.layout.addWidget(self.fav_button,      1, 1)
-        self.layout.addWidget(self.release_date,    2, 1)
-        self.layout.addWidget(self.country,         3, 1)
-        self.layout.addWidget(self.genre,           4, 1)
-        self.layout.addWidget(self.duration,        5, 1)
-        self.layout.addWidget(self.rating,          6, 1)
-        self.layout.addWidget(self.director,        7, 1)
-        self.layout.addWidget(self.cast,            8, 1)
-        self.layout.addWidget(self.description,     9, 1)
-        self.layout.addWidget(self.trailer,         10, 1)
-        self.layout.addWidget(self.tmdb,            11, 1)
+        self.layout.addWidget(self.release_date,    1, 1)
+        self.layout.addWidget(self.country,         2, 1)
+        self.layout.addWidget(self.genre,           3, 1)
+        self.layout.addWidget(self.duration,        4, 1)
+        self.layout.addWidget(self.rating,          5, 1)
+        self.layout.addWidget(self.director,        6, 1)
+        self.layout.addWidget(self.cast,            7, 1)
+        self.layout.addWidget(self.description,     8, 1)
+        self.layout.addLayout(self.links_layout,    9, 1)
 
         self.setWidget(self.widget)
 
     def TrailerClicked(self, e):
         #Get youtube code from text and append to url
-        yt_code = self.trailer.text()[9:]
-        yt_url = f"https://www.youtube.com/watch?v={yt_code}"
+        yt_url = f"https://www.youtube.com/watch?v={self.yt_code}"
 
         #Open URL
         QDesktopServices.openUrl(QUrl(yt_url))
 
     def TmdbClicked(self, e):
         #Get TMDB code from text and append to url
-        tmdb_code = self.tmdb.text()[6:]
-        tmdb_url = f"https://www.themoviedb.org/movie/{tmdb_code}"
+        tmdb_url = f"https://www.themoviedb.org/movie/{self.tmdb_code}"
 
         #Open URL
         QDesktopServices.openUrl(QUrl(tmdb_url))
@@ -170,6 +210,9 @@ class SeriesInfoBox(QScrollArea):
 
         self.parent = parent
 
+        self.yt_code    = None
+        self.tmdb_code  = None
+
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.setWidgetResizable(True)
@@ -191,7 +234,7 @@ class SeriesInfoBox(QScrollArea):
 
         #Create favorites button
         self.fav_button = QPushButton("")
-        self.fav_button.setStyleSheet("text-align: left")
+        self.fav_button.setFixedWidth(25)
         self.fav_button.setFlat(True)
         self.fav_button.setIcon(self.parent.favorites_icon)
         self.fav_button.clicked.connect(lambda: self.parent.favButtonPressed("Series", self))
@@ -206,8 +249,24 @@ class SeriesInfoBox(QScrollArea):
         self.director       = QLabel("Director: ?")
         self.cast           = QLabel("Cast: ?")
         self.description    = QLabel("Description: ?")
-        self.trailer        = QLabel("Trailer: ?")
-        self.tmdb           = QLabel("TMDB: ?")
+
+        self.trailer = QLabel()
+        self.trailer.setAlignment(Qt.AlignLeft)
+        self.trailer.setFixedWidth(50)
+        self.trailer.setEnabled(False)
+
+        self.tmdb = QLabel()
+        self.tmdb.setAlignment(Qt.AlignLeft)
+        self.tmdb.setFixedWidth(50)
+        self.tmdb.setEnabled(False)
+
+        #Set YouTube icon
+        self.yt_img = QPixmap(self.parent.path_to_yt_img)
+        self.trailer.setPixmap(self.yt_img.scaledToHeight(30))
+
+        #Set TMDB icon
+        self.tmdb_img = QPixmap(self.parent.path_to_tmdb_img)
+        self.tmdb.setPixmap(self.tmdb_img.scaledToHeight(30))
 
         self.trailer.mousePressEvent    = self.TrailerClicked
         self.tmdb.mousePressEvent       = self.TmdbClicked
@@ -224,39 +283,44 @@ class SeriesInfoBox(QScrollArea):
         self.director.setWordWrap(True)
         self.cast.setWordWrap(True)
         self.description.setWordWrap(True)
-        self.trailer.setWordWrap(True)
-        self.tmdb.setWordWrap(True)
+
+        #Create layout with title and favorite button
+        self.title_layout = QHBoxLayout()
+        self.title_layout.addWidget(self.name)
+        self.title_layout.addWidget(self.fav_button)
+
+        #Create layout with YouTube and TMDB icon next to each other
+        self.links_layout = QHBoxLayout()
+        self.links_layout.addWidget(self.trailer)
+        self.links_layout.addWidget(self.tmdb)
+        self.links_layout.addStretch(1)
 
         #Add widgets
-        self.layout.addWidget(self.name,            0, 0, 1, 2)
+        self.layout.addLayout(self.title_layout,    0, 0, 1, 2)
         self.layout.addWidget(self.cover,           1, 0, 10, 1)
-        self.layout.addWidget(self.fav_button,      1, 1)
-        self.layout.addWidget(self.release_date,    2, 1)
-        self.layout.addWidget(self.genre,           3, 1)
-        self.layout.addWidget(self.num_seasons,     4, 1)
-        self.layout.addWidget(self.duration,        5, 1)
-        self.layout.addWidget(self.rating,          6, 1)
-        self.layout.addWidget(self.director,        7, 1)
-        self.layout.addWidget(self.cast,            8, 1)
-        self.layout.addWidget(self.description,     9, 1)
-        self.layout.addWidget(self.trailer,         10, 1)
-        self.layout.addWidget(self.tmdb,            11, 1)
+        self.layout.addWidget(self.release_date,    1, 1)
+        self.layout.addWidget(self.genre,           2, 1)
+        self.layout.addWidget(self.num_seasons,     3, 1)
+        self.layout.addWidget(self.duration,        4, 1)
+        self.layout.addWidget(self.rating,          5, 1)
+        self.layout.addWidget(self.director,        6, 1)
+        self.layout.addWidget(self.cast,            7, 1)
+        self.layout.addWidget(self.description,     8, 1)
+        self.layout.addLayout(self.links_layout,    9, 1)
 
         #Add widget with all items to the scrollarea (self)
         self.setWidget(self.widget)
 
     def TrailerClicked(self, e):
         #Get youtube code from text and append to url
-        yt_code = self.trailer.text()[9:]
-        yt_url = f"https://www.youtube.com/watch?v={yt_code}"
+        yt_url = f"https://www.youtube.com/watch?v={self.yt_code}"
 
         #Open URL
         QDesktopServices.openUrl(QUrl(yt_url))
 
     def TmdbClicked(self, e):
         #Get TMDB code from text and append to url
-        tmdb_code = self.tmdb.text()[6:]
-        tmdb_url = f"https://www.themoviedb.org/tv/{tmdb_code}"
+        tmdb_url = f"https://www.themoviedb.org/tv/{self.tmdb_code}"
 
         #Open URL
         QDesktopServices.openUrl(QUrl(tmdb_url))

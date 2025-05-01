@@ -28,21 +28,16 @@ from PyQt5.QtWidgets import (
 
 from AccountManager import AccountManager
 from CustomPyQtWidgets import LiveInfoBox, MovieInfoBox, SeriesInfoBox
+import Threadpools
 from Threadpools import FetchDataWorker, SearchWorker, EPGWorker, MovieInfoFetcher, SeriesInfoFetcher, ImageFetcher
 
 CURRENT_VERSION = "V1.02.00"
-
-CUSTOM_USER_AGENT = (
-    "Connection: Keep-Alive User-Agent: okhttp/5.0.0-alpha.2 "
-    "Accept-Encoding: gzip, deflate"
-)
 
 is_windows  = sys.platform.startswith('win')
 is_mac      = sys.platform.startswith('darwin')
 is_linux    = sys.platform.startswith('linux')
 
 GITHUB_REPO = "Youri666/Xtream-m3u_plus-IPTV-Player"
-SUPPORT_URL = "https://buymeacoffee.com/ghostlord_007"
 
 class IPTVPlayerApp(QMainWindow):
     def __init__(self):
@@ -50,13 +45,22 @@ class IPTVPlayerApp(QMainWindow):
         self.setWindowTitle(f"IPTV Player {CURRENT_VERSION}")
         self.resize(1300, 900)
 
-        self.user_data_file = 'userdata.ini'
-        self.favorites_file = 'favorites.json'
+        self.user_agents = [
+            "Mozilla/5.0", "AppleWebKit/537.36", "Chrome/123.0.0.0", "Safari/537.36", "okhttp/5.0.0-alpha.2", "Lavf53.32.100"
+        ]
+        self.current_user_agent = ""
+
+        self.user_data_file = "userdata.ini"
+        self.favorites_file = "favorites.json"
+        self.cache_file     = "all_cached_data.json"
 
         self.path_to_window_icon    = path.abspath(path.join(path.dirname(__file__), 'Images/TV_icon.ico'))
         self.path_to_no_img         = path.abspath(path.join(path.dirname(__file__), 'Images/no_image.jpg'))
         self.path_to_loading_img    = path.abspath(path.join(path.dirname(__file__), 'Images/loading-icon.png'))
         self.path_to_404_img        = path.abspath(path.join(path.dirname(__file__), 'Images/404_not_found.png'))
+
+        self.path_to_yt_img         = path.abspath(path.join(path.dirname(__file__), 'Images/yt_icon_rgb.png'))
+        self.path_to_tmdb_img       = path.abspath(path.join(path.dirname(__file__), 'Images/primary_full-TMDB.svg'))
 
         self.path_to_home_icon      = path.abspath(path.join(path.dirname(__file__), 'Images/home_tab_icon.ico'))
         self.path_to_live_icon      = path.abspath(path.join(path.dirname(__file__), 'Images/tv_tab_icon.ico'))
@@ -134,8 +138,6 @@ class IPTVPlayerApp(QMainWindow):
         self.threadpool = QThreadPool()
         self.threadpool.setMaxThreadCount(1)
 
-        self.external_player_command = self.load_external_player_command()
-
         self.initIcons()
 
         self.initTabWidget()
@@ -149,14 +151,10 @@ class IPTVPlayerApp(QMainWindow):
         self.initSearchBars()
 
         # self.initHomeTab()
-        # self.initFavoritesTab()
 
         self.initSettingsTab()
 
         self.initProgressBar()        
-
-        #Load default sorting setting
-        self.loadDefaultSortingOrder()
 
         #Add widgets to tabs
         self.live_tab_layout.addWidget(self.category_search_bar_live, 0, 0)
@@ -196,14 +194,14 @@ class IPTVPlayerApp(QMainWindow):
         self.tab_icon_size = QSize(24, 24)
 
         #Create tab icons
-        self.home_icon      = QIcon(self.path_to_home_icon)
-        self.live_icon      = QIcon(self.path_to_live_icon)
-        self.movies_icon    = QIcon(self.path_to_movies_icon)
-        self.series_icon    = QIcon(self.path_to_series_icon)
-        self.favorites_icon = QIcon(self.path_to_favorites_icon)
-        self.favorites_icon_colour = QIcon(self.path_to_fav_colour_icon)
-        self.info_icon      = QIcon(self.path_to_info_icon)
-        self.settings_icon  = QIcon(self.path_to_settings_icon)
+        self.home_icon              = QIcon(self.path_to_home_icon)
+        self.live_icon              = QIcon(self.path_to_live_icon)
+        self.movies_icon            = QIcon(self.path_to_movies_icon)
+        self.series_icon            = QIcon(self.path_to_series_icon)
+        self.favorites_icon         = QIcon(self.path_to_favorites_icon)
+        self.favorites_icon_colour  = QIcon(self.path_to_fav_colour_icon)
+        self.info_icon              = QIcon(self.path_to_info_icon)
+        self.settings_icon          = QIcon(self.path_to_settings_icon)
 
         #Create settings buttons icons
         self.account_manager_icon   = QIcon(self.path_to_account_icon)
@@ -494,10 +492,6 @@ class IPTVPlayerApp(QMainWindow):
         self.home_tab_layout.addWidget(self.series_history_lbl)
         self.home_tab_layout.addWidget(self.series_history_list)
 
-    def initFavoritesTab(self):
-        #TODO add favorties tab functionality
-        pass
-
     def loadDefaultSortingOrder(self):
         sorting_order = ""
 
@@ -591,44 +585,83 @@ class IPTVPlayerApp(QMainWindow):
 
         self.keep_on_top_checkbox = QCheckBox("Keep on top")
         self.keep_on_top_checkbox.setToolTip("Keep the application on top of all windows")
-        self.keep_on_top_checkbox.stateChanged.connect(self.toggle_keep_on_top)
+        self.keep_on_top_checkbox.stateChanged.connect(self.toggleKeepOnTop)
 
         self.default_sorting_order_box = QComboBox()
         self.default_sorting_order_box.addItems(["A-Z", "Z-A", "Sorting disabled"])
         self.default_sorting_order_box.currentTextChanged.connect(lambda e: self.setDefaultSortingOrder(e, self.default_sorting_order_box))
 
-        self.cache_on_startup_checkbox = QCheckBox("Startup with cached data")
-        self.cache_on_startup_checkbox.setToolTip("Loads the cached IPTV data on startup to reduce startup time.\nNote that the cached data only changes if you manually reload it once in a while.")
-        self.cache_on_startup_checkbox.stateChanged.connect(self.toggle_cache_on_startup)
+        # self.cache_on_startup_checkbox = QCheckBox("Startup with cached data")
+        # self.cache_on_startup_checkbox.setToolTip("Loads the cached IPTV data on startup to reduce startup time.\nNote that the cached data only changes if you manually reload it once in a while.")
+        # self.cache_on_startup_checkbox.stateChanged.connect(self.toggle_cache_on_startup)
 
-        self.reload_data_btn = QPushButton("Reload data")
-        self.reload_data_btn.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload))
-        self.reload_data_btn.setToolTip("Click this to manually reload the IPTV data.\nNote that this only has effect if \'Startup with cached data\' is checked.")
+        # self.reload_data_btn = QPushButton("Reload data")
+        # self.reload_data_btn.setIcon(self.style().standardIcon(QtWidgets.QStyle.SP_BrowserReload))
+        # self.reload_data_btn.setToolTip("Click this to manually reload the IPTV data.\nNote that this only has effect if \'Startup with cached data\' is checked.")
+
+        self.select_user_agent_box = QComboBox()
+        self.select_user_agent_box.addItems(self.user_agents)
+        self.select_user_agent_box.currentTextChanged.connect(lambda e: self.userAgentSelected(e, self.select_user_agent_box))
 
         self.update_checker = QPushButton("Check for updates")
-        self.update_checker.clicked.connect(self.check_for_updates)
+        self.update_checker.clicked.connect(lambda: self.checkForUpdates(True))
 
-        self.support_me_btn = QPushButton("Support me :)")
-        self.support_me_btn.clicked.connect(self.open_support_link)
+        self.auto_update_checkbox = QCheckBox("Auto check for updates")
+        self.auto_update_checkbox.setToolTip("Automatically check for updates at startup")
+        self.auto_update_checkbox.stateChanged.connect(self.toggleAutoUpdate)
 
         #Add widgets to settings tab layout
-        self.settings_layout.addWidget(self.address_book_button,            0, 0)
-        self.settings_layout.addWidget(self.choose_player_button,           0, 1)
-        self.settings_layout.addWidget(self.keep_on_top_checkbox,           1, 0)
-        self.settings_layout.addWidget(QLabel("Default sorting order: "),   2, 0)
-        self.settings_layout.addWidget(self.default_sorting_order_box,      2, 1)
-        self.settings_layout.addWidget(self.update_checker,                 3, 0)
-        self.settings_layout.addWidget(self.support_me_btn,                 4, 0)
+        self.settings_layout.addWidget(self.address_book_button,                            0, 0)
+        self.settings_layout.addWidget(self.choose_player_button,                           0, 1)
+        self.settings_layout.addWidget(self.keep_on_top_checkbox,                           1, 0)
+        self.settings_layout.addWidget(QLabel("Default sorting order: "),                   2, 0)
+        self.settings_layout.addWidget(self.default_sorting_order_box,                      2, 1)
+        self.settings_layout.addWidget(QLabel("Select User-Agent (Advanced option): "),     3, 0)
+        self.settings_layout.addWidget(self.select_user_agent_box,                          3, 1)
+        self.settings_layout.addWidget(self.update_checker,                                 4, 0)
+        self.settings_layout.addWidget(self.auto_update_checkbox,                           4, 1)
         # self.settings_layout.addWidget(self.cache_on_startup_checkbox,  2, 0)
         # self.settings_layout.addWidget(self.reload_data_btn,            3, 0)
 
-    def check_for_updates(self):
+    def userAgentSelected(self, e, combobox):
+        #Get selected text
+        user_agent = combobox.currentText()
+
+        #Set current user agent
+        self.current_user_agent = user_agent
+
+        #Save selected user agent to userdata
+        config = configparser.ConfigParser()
+        config.read(self.user_data_file)
+
+        config['User-Agent'] = {'user-agent': user_agent}
+
+        with open(self.user_data_file, 'w') as config_file:
+            config.write(config_file)
+
+    def loadDefaultUserAgent(self):
+        #Read userdata config file
+        config = configparser.ConfigParser()
+        config.read(self.user_data_file)
+
+        #Check if defined in config. Otherwise set to default
+        if 'User-Agent' in config:
+            self.current_user_agent = config['User-Agent']['user-agent']
+        else:
+            self.current_user_agent = Threadpools.DEFAULT_USER_AGENT_HEADER
+
+        #Update combobox to selection
+        self.select_user_agent_box.setCurrentText(self.current_user_agent)
+
+    def checkForUpdates(self, enable_update_msg):
         try:
+            print("Checking for updates")
+
             #Create github api url to fetch data from
             git_api_url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
             #Request data from url
-            git_resp = requests.get(git_api_url, timeout=5)
+            git_resp = requests.get(git_api_url, timeout=Threadpools.CONNECTION_TIMEOUT)
 
             #Get data and latest version
             data = git_resp.json()
@@ -649,15 +682,58 @@ class IPTVPlayerApp(QMainWindow):
                     QDesktopServices.openUrl(QUrl(latest_version_url))
 
             #Current version is up to date
-            else:
+            elif enable_update_msg:
                 QMessageBox.information(self, 'No Update', "You are using the latest version.")
 
-        except Exception as e:
-            print(e)
+            else:
+                self.animate_progress(0, 100, "No update available")
 
-    def open_support_link(self):
-        #Open URL
-        QDesktopServices.openUrl(QUrl(SUPPORT_URL))
+        except Exception as e:
+            print(f"Failed update checker: {e}")
+
+            if enable_update_msg:
+                QMessageBox.warning(self, 'Failed update checker', "Failed checking for updates.\nPlease try again.")
+            else:
+                self.animate_progress(0, 100, "Failed checking for updates")
+
+    def toggleAutoUpdate(self, state):
+        checked = bool(state)
+
+        config = configparser.ConfigParser()
+        config.read(self.user_data_file)
+
+        config['Updater'] = {'auto-update-checker': checked}
+
+        with open(self.user_data_file, 'w') as config_file:
+            config.write(config_file)
+
+    def loadDefaultAutoUpdate(self):
+        #Read userdata file
+        config = configparser.ConfigParser()
+        config.read(self.user_data_file)
+
+        #Check if updater is in config
+        if 'Updater' in config:
+            if config['Updater']['auto-update-checker'] == 'True':
+                #Set checkbox checked
+                self.auto_update_checkbox.setCheckState(Qt.Checked)
+
+                #If auto update checker is enabled, check for update
+                self.checkForUpdates(False)
+
+        #If not enable the auto-update-checker by default
+        else:
+            #Write default value to userdata file
+            config['Updater'] = {'auto-update-checker': True}
+
+            with open(self.user_data_file, 'w') as config_file:
+                config.write(config_file)
+
+            #Set checkbox checked
+            self.auto_update_checkbox.setCheckState(Qt.Checked)
+
+            #Check for updates
+            self.checkForUpdates(False)
 
     def initProgressBar(self):
         #Create progress bar
@@ -673,7 +749,23 @@ class IPTVPlayerApp(QMainWindow):
         self.playlist_progress_animation.setDuration(1000)  # longer duration for smoother animation
         self.playlist_progress_animation.setEasingCurve(QEasingCurve.InOutQuad)
 
-    def load_data_startup(self):
+    def loadDataAtStartup(self):
+        #Load external media player
+        self.external_player_command = self.load_external_player_command()
+
+        #Load default sorting setting
+        self.loadDefaultSortingOrder()
+
+        #Load default user agent
+        self.loadDefaultUserAgent()
+
+        #Load default auto update checker
+        self.loadDefaultAutoUpdate()
+
+        #Load startup credentials
+        self.loadStartupCredentials()
+
+    def loadStartupCredentials(self):
         # Load playlist on startup if enabled
         config = configparser.ConfigParser()
         config.read(self.user_data_file)
@@ -703,7 +795,7 @@ class IPTVPlayerApp(QMainWindow):
                     if self.extract_credentials_from_m3u_plus_url(m3u_url):
                         self.login()
 
-    def toggle_keep_on_top(self, state):
+    def toggleKeepOnTop(self, state):
         if state == Qt.Checked:
             self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         else:
@@ -809,9 +901,13 @@ class IPTVPlayerApp(QMainWindow):
         dataWorker.signals.finished.connect(self.process_data)
         dataWorker.signals.error.connect(self.on_fetch_data_error)
         dataWorker.signals.progress_bar.connect(self.animate_progress)
+        dataWorker.signals.show_error_msg.connect(self.show_error_msg)
+        dataWorker.signals.show_info_msg.connect(self.show_info_msg)
         self.threadpool.start(dataWorker)
 
     def process_data(self, iptv_info, categories_per_stream_type, entries_per_stream_type):
+        print("Going to process IPTV data now")
+
         self.categories_per_stream_type = categories_per_stream_type
         self.entries_per_stream_type    = entries_per_stream_type
 
@@ -828,27 +924,32 @@ class IPTVPlayerApp(QMainWindow):
         else:
             host = f"http://{hostname}:{port}"
 
-        username            = user_info.get("username", "Unknown")
-        password            = user_info.get("password", "Unknown")
-        max_connections     = user_info.get("max_connections", "Unknown")
-        active_connections  = user_info.get("active_cons", "Unknown")
-        status              = user_info.get("status", "Unknown")
-        expire_timestamp    = user_info.get("exp_date", "Unknown")
-        expiry = (
-            datetime.fromtimestamp(int(expire_timestamp)).strftime("%B %d, %Y")
-            if expire_timestamp else "Unknown"
-        )
+        username                = user_info.get("username", "Unknown")
+        password                = user_info.get("password", "Unknown")
+        max_connections         = user_info.get("max_connections", "Unknown")
+        active_connections      = user_info.get("active_cons", "Unknown")
+        status                  = user_info.get("status", "Unknown")
+        expire_timestamp        = user_info.get("exp_date", 0)
+        created_at_timestamp    = user_info.get("created_at", 0)
+
+        #If a value is given
+        if expire_timestamp:
+            #Convert date time variable to string
+            expiry = datetime.fromtimestamp(int(expire_timestamp)).strftime("%B %d, %Y")
+        else:
+            expiry = "Unknown"
+
+        #If a value is given
+        if created_at_timestamp:
+            #Convert date time variable to string
+            created_at = datetime.fromtimestamp(int(created_at_timestamp)).strftime("%B %d, %Y")
+        else:
+            created_at = "Unknown"
 
         if user_info.get("is_trial") == "1":
             trial = "Yes"
         else:
             trial = "No"
-
-        created_at_timestamp = user_info.get("created_at", "Unknown")
-        created_at = (
-            datetime.fromtimestamp(int(created_at_timestamp)).strftime("%B %d, %Y")
-            if created_at_timestamp and created_at_timestamp.isdigit() else "Unknown"
-        )
 
         timezone = server_info.get("timezone", "Unknown")
 
@@ -937,8 +1038,14 @@ class IPTVPlayerApp(QMainWindow):
         print(f"Error occurred while fetching data: {error_msg}")
         self.set_progress_bar(100, "Failed fetching data")
 
+    def show_error_msg(self, title, msg):
+        QMessageBox.warning(self, title, msg)
+
+    def show_info_msg(self, title, msg):
+        QMessageBox.information(self, title, msg)
+
     def fetch_vod_info(self, vod_id):
-        movie_info_fetcher = MovieInfoFetcher(self.server, self.username, self.password, vod_id)
+        movie_info_fetcher = MovieInfoFetcher(self.server, self.username, self.password, vod_id, self)
         movie_info_fetcher.signals.finished.connect(self.process_vod_info)
         movie_info_fetcher.signals.error.connect(self.on_fetch_data_error)
         self.threadpool.start(movie_info_fetcher)
@@ -976,8 +1083,32 @@ class IPTVPlayerApp(QMainWindow):
         self.movies_info_box.director.setText(f"Director: {vod_info.get('director', 'director: ?')}")
         self.movies_info_box.cast.setText(f"Cast: {vod_info.get('actors', 'actors: ?')}")
         self.movies_info_box.description.setText(f"Description: {vod_info.get('description', '?')}")
-        self.movies_info_box.trailer.setText(f"Trailer: {vod_info.get('youtube_trailer', '?')}")
-        self.movies_info_box.tmdb.setText(f"TMBD: {vod_info.get('tmdb_id', '?')}")
+
+        #Get youtube trailer code
+        yt_code = vod_info.get('youtube_trailer', 0)
+        if yt_code:
+            self.movies_info_box.yt_code = yt_code
+
+            #Make YouTube button visible
+            self.movies_info_box.trailer.setEnabled(True)
+        else:
+            self.movies_info_box.yt_code = None
+
+            #Make YouTube button invisible
+            self.movies_info_box.trailer.setEnabled(False)
+
+        #Get TMDB code
+        tmdb_code = vod_info.get('tmdb_id', 0)
+        if tmdb_code:
+            self.movies_info_box.tmdb_code = tmdb_code
+
+            #Make TMDB button visible
+            self.movies_info_box.tmdb.setEnabled(True)
+        else:
+            self.movies_info_box.tmdb_code = None
+
+            #Make TMDB button invisible
+            self.movies_info_box.tmdb.setEnabled(False)
 
         #Update progress bar
         if not vod_info:
@@ -987,7 +1118,7 @@ class IPTVPlayerApp(QMainWindow):
             self.set_progress_bar(100, "Loaded Movie info")
 
     def fetch_series_info(self, series_id, is_show_request):
-        series_info_fetcher = SeriesInfoFetcher(self.server, self.username, self.password, series_id, is_show_request)
+        series_info_fetcher = SeriesInfoFetcher(self.server, self.username, self.password, series_id, is_show_request, self)
         series_info_fetcher.signals.finished.connect(self.process_series_info)
         series_info_fetcher.signals.error.connect(self.on_fetch_data_error)
         self.threadpool.start(series_info_fetcher)
@@ -1060,8 +1191,6 @@ class IPTVPlayerApp(QMainWindow):
             director        = series_info.get('director', '?')
             cast            = series_info.get('cast', '?')
             plot            = series_info.get('plot', '?')
-            trailer         = series_info.get('youtube_trailer', '?')
-            tmdb            = series_info.get('tmdb', '?')
 
             #Set series info box texts
             self.series_info_box.name.setText(f"{series_name}")
@@ -1073,8 +1202,32 @@ class IPTVPlayerApp(QMainWindow):
             self.series_info_box.director.setText(f"Director: {director if director else '?'}")
             self.series_info_box.cast.setText(f"Cast: {cast if cast else '?'}")
             self.series_info_box.description.setText(f"Description: {plot if plot else '?'}")
-            self.series_info_box.trailer.setText(f"Trailer: {trailer if trailer else '?'}")
-            self.series_info_box.tmdb.setText(f"TMDB: {tmdb if (tmdb and tmdb != '0') else '?'}")
+
+            #Get youtube trailer code
+            yt_code = series_info.get('youtube_trailer', 0)
+            if yt_code:
+                self.series_info_box.yt_code = yt_code
+
+                #Make YouTube button visible
+                self.series_info_box.trailer.setEnabled(True)
+            else:
+                self.series_info_box.yt_code = None
+
+                #Make YouTube button invisible
+                self.series_info_box.trailer.setEnabled(False)
+
+            #Get TMDB code
+            tmdb_code = series_info.get('tmdb', 0)
+            if tmdb_code:
+                self.series_info_box.tmdb_code = tmdb_code
+
+                #Make TMDB button visible
+                self.series_info_box.tmdb.setEnabled(True)
+            else:
+                self.series_info_box.tmdb_code = None
+
+                #Make TMDB button invisible
+                self.series_info_box.tmdb.setEnabled(False)
 
             #Update progress bar
             if not series_info:
@@ -1098,82 +1251,94 @@ class IPTVPlayerApp(QMainWindow):
                 #Set movie image
                 self.movies_info_box.cover.setPixmap(image.scaledToWidth(self.movies_info_box.maxCoverWidth))
             elif stream_type == 'Live':
-                pass
+                #Set live tv image
+                self.live_info_box.cover.setPixmap(image.scaledToWidth(self.live_info_box.maxCoverHeight))
         except Exception as e:
             print(f"Failed processing image: {e}")
 
     def favButtonPressed(self, stream_type, info_box):
-        #Get current selected item and stream id
-        current_sel_item = self.streaming_list_widgets[stream_type].currentItem()
+        try:
+            #Get current selected item and stream id
+            current_sel_item = self.streaming_list_widgets[stream_type].currentItem()
 
-        #Check if an item is selected
-        if not current_sel_item:
-            #Otherwise return from function
-            return
+            #Check if an item is selected
+            if not current_sel_item:
+                #Otherwise return from function
+                return
 
-        #Check if inside series navigation
-        if self.series_navigation_level != 0 and stream_type == "Series":
-            return
+            #Check if inside series navigation
+            if self.series_navigation_level != 0 and stream_type == "Series":
+                return
 
-        data = current_sel_item.data(Qt.UserRole)
+            data = current_sel_item.data(Qt.UserRole)
 
-        #Check if item data is valid
-        if not data:
-            return
+            #Check if item data is valid
+            if not data:
+                return
 
-        #Check if stream type is series
-        if stream_type == "Series":
-            stream_id = data.get('series_id', -1)
-        else:
-            stream_id = data.get('stream_id', -1)
-
-        is_fav = False
-
-        #loop through all streaming entries
-        for idx, entry in enumerate(self.entries_per_stream_type[stream_type]):
-            #Match to current data streaming id
-            if entry['stream_id' if not (stream_type == "Series") else 'series_id'] == stream_id:
-                #Check if item is favorite
-                is_fav = self.entries_per_stream_type[stream_type][idx].get('favorite', False)
-
-                #toggle favorite
-                is_fav = not is_fav
-
-                #Set favorite parameter
-                self.entries_per_stream_type[stream_type][idx]['favorite'] = is_fav
-
-        #Change fav button colour
-        info_box.setFavorite(is_fav)
-        
-        #Set favorite parameter
-        data['favorite'] = is_fav
-
-        #Set data to currently selected item
-        current_sel_item.setData(Qt.UserRole, data)
-
-        fav_data = {}
-
-        #Read favorites data file
-        fav_file_path = path.join(path.dirname(path.abspath(__file__)), self.favorites_file)
-        #Check if cache file exists
-        if path.isfile(fav_file_path):
-            with open(self.favorites_file, 'r') as fav_file:
-                fav_data = json.load(fav_file)
-
-        if is_fav:
-            #Check if stream ids exists in file
-            if fav_data.get('stream_ids' if not (stream_type == "Series") else 'series_ids', 0):
-                fav_data['stream_ids' if not (stream_type == "Series") else 'series_ids'].append(stream_id)
+            #Check if stream type is series
+            if stream_type == "Series":
+                stream_id = data.get('series_id', -1)
             else:
-                # fav_data = {'stream_ids':[123]}
-                fav_data['stream_ids' if not (stream_type == "Series") else 'series_ids'] = [stream_id]
-        else:
-            #Check if stream ids exists in file
-            if fav_data.get('stream_ids' if not (stream_type == "Series") else 'series_ids', 0):
-                fav_data['stream_ids' if not (stream_type == "Series") else 'series_ids'].remove(stream_id)
+                stream_id = data.get('stream_id', -1)
 
-        with open(self.favorites_file, 'w') as fav_file:
-            json.dump(fav_data, fav_file, indent=4)
+            is_fav = False
+
+            #loop through all streaming entries
+            for idx, entry in enumerate(self.entries_per_stream_type[stream_type]):
+                #Match to current data streaming id
+                if entry['stream_id' if not (stream_type == "Series") else 'series_id'] == stream_id:
+                    #Check if item is favorite
+                    is_fav = self.entries_per_stream_type[stream_type][idx].get('favorite', False)
+
+                    #toggle favorite
+                    is_fav = not is_fav
+
+                    #Set favorite parameter
+                    self.entries_per_stream_type[stream_type][idx]['favorite'] = is_fav
+
+            #Change fav button colour
+            info_box.setFavorite(is_fav)
+            
+            #Set favorite parameter
+            data['favorite'] = is_fav
+
+            #Set data to currently selected item
+            current_sel_item.setData(Qt.UserRole, data)
+
+            fav_data = {}
+
+            #Read favorites data file
+            # fav_file_path = path.join(path.dirname(path.abspath(__file__)), self.favorites_file)
+            # fav_file_path = path.join(path.dirname(path.abspath(__file__)), "favorites.json")
+
+            #Check if cache file exists
+            if path.isfile(self.favorites_file):
+                print("favorite file found")
+                # with open(self.favorites_file, 'r') as fav_file:
+                with open(self.favorites_file, 'r') as fav_file:
+                    fav_data = json.load(fav_file)
+
+            if is_fav:
+                #Check if stream ids exists in file
+                if fav_data.get('stream_ids' if not (stream_type == "Series") else 'series_ids', 0):
+                    fav_data['stream_ids' if not (stream_type == "Series") else 'series_ids'].append(stream_id)
+                else:
+                    # fav_data = {'stream_ids':[123]}
+                    fav_data['stream_ids' if not (stream_type == "Series") else 'series_ids'] = [stream_id]
+            else:
+                #Check if stream ids exists in file
+                if fav_data.get('stream_ids' if not (stream_type == "Series") else 'series_ids', 0):
+                    fav_data['stream_ids' if not (stream_type == "Series") else 'series_ids'].remove(stream_id)
+
+            # with open(self.favorites_file, 'w') as fav_file:
+            with open(self.favorites_file, 'w') as fav_file:
+                json.dump(fav_data, fav_file, indent=4)
+
+        except Exception as e:
+            self.animate_progress(0, 100, "Failed adding to favorites")
+
+            print(f"Failed adding to favorites: {e}")
 
     def category_item_clicked(self, clicked_item):
         try:
@@ -1257,7 +1422,7 @@ class IPTVPlayerApp(QMainWindow):
 
     def startEPGWorker(self, stream_id):
         #Create EPG thread worker that will fetch EPG data
-        epg_worker = EPGWorker(self.server, self.username, self.password, stream_id)
+        epg_worker = EPGWorker(self.server, self.username, self.password, stream_id, self)
 
         #Connect functions to signals
         epg_worker.signals.finished.connect(self.ProcessEPGData)
@@ -1269,6 +1434,10 @@ class IPTVPlayerApp(QMainWindow):
     def onEPGFetchError(self, error_msg):
         print(f"Failed fetching EPG data: {error_msg}")
         self.set_progress_bar(100, "Failed loading EPG data")
+
+        #Set list view
+        item = QTreeWidgetItem(["??-??-????", "??:??", "??:??", "Failed loading EPG data..."])
+        self.live_info_box.live_EPG_info.addTopLevelItem(item)
 
     def ProcessEPGData(self, epg_data):
         try:
@@ -1344,10 +1513,6 @@ class IPTVPlayerApp(QMainWindow):
             if (clicked_item == self.prev_clicked_streaming_item):
                 return
 
-            # #Check if not at navigation top level
-            # if (self.series_navigation_level != 0):
-            #     return
-
             #Save to previous item
             self.prev_clicked_streaming_item = clicked_item
 
@@ -1387,6 +1552,10 @@ class IPTVPlayerApp(QMainWindow):
                 item = QTreeWidgetItem(["...", "...", "...", "Loading EPG Data..."])
                 self.live_info_box.live_EPG_info.addTopLevelItem(item)
 
+                #Fetch cover image
+                self.fetch_image(clicked_item_data['stream_icon'], 'Live')
+
+                #Fetch EPG data
                 self.startEPGWorker(clicked_item_data['stream_id'])
 
             #Show movie info if movie clicked
@@ -1409,8 +1578,14 @@ class IPTVPlayerApp(QMainWindow):
                 self.movies_info_box.director.setText(f"Director: ...")
                 self.movies_info_box.cast.setText(f"Cast: ...")
                 self.movies_info_box.description.setText(f"Description: ...")
-                self.movies_info_box.trailer.setText(f"Trailer: ...")
-                self.movies_info_box.tmdb.setText(f"TMBD: ...")
+
+                #Reset YouTube and TMDB codes
+                self.movies_info_box.yt_code = None
+                self.movies_info_box.tmdb_code = None
+
+                #Make YouTube and TMDB buttons invisible
+                self.movies_info_box.trailer.setEnabled(False)
+                self.movies_info_box.tmdb.setEnabled(False)
 
                 #Get vod info and vod data
                 self.fetch_vod_info(clicked_item_data['stream_id'])
@@ -1439,8 +1614,14 @@ class IPTVPlayerApp(QMainWindow):
                 self.series_info_box.director.setText(f"Director: ...")
                 self.series_info_box.cast.setText(f"Cast: ...")
                 self.series_info_box.description.setText(f"Description: ...")
-                self.series_info_box.trailer.setText(f"Trailer: ...")
-                self.series_info_box.tmdb.setText(f"TMDB: ...")
+
+                #Reset YouTube and TMDB codes
+                self.series_info_box.yt_code = None
+                self.series_info_box.tmdb_code = None
+
+                #Make YouTube and TMDB buttons invisible
+                self.series_info_box.trailer.setEnabled(False)
+                self.series_info_box.tmdb.setEnabled(False)
 
                 #Fetch series info data
                 self.fetch_series_info(clicked_item_data['series_id'], False)
@@ -1823,7 +2004,7 @@ def main():
     player.show()
     # player.showMaximized()
     QtWidgets.qApp.processEvents()
-    player.load_data_startup()
+    player.loadDataAtStartup()
     sys.exit(app.exec_())
 
 if __name__ == "__main__":

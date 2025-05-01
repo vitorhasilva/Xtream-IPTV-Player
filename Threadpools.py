@@ -28,15 +28,26 @@ from PyQt5.QtWidgets import (
 
 import base64
 
-CUSTOM_USER_AGENT = (
-    "Connection: Keep-Alive User-Agent: okhttp/5.0.0-alpha.2 "
-    "Accept-Encoding: gzip, deflate"
-)
+# CUSTOM_USER_AGENT = (
+#     "Connection: Keep-Alive User-Agent: okhttp/5.0.0-alpha.2 "
+#     "Accept-Encoding: gzip, deflate"
+# )
+
+CONNECTION_HEADER           = "Keep-Alive"
+CONTENT_HEADER              = "gzip, deflate"
+DEFAULT_USER_AGENT_HEADER   = "Chrome/123.0.0.0"
+
+# CUSTOM_USER_AGENT = "Connection: Keep-Alive Accept-Encoding: gzip, deflate "
+
+CONNECTION_TIMEOUT  = 3
+READ_TIMEOUT        = 10
 
 class FetchDataWorkerSignals(QObject):
     finished        = pyqtSignal(dict, dict, dict)
     error           = pyqtSignal(str)
     progress_bar    = pyqtSignal(int, int, str)
+    show_error_msg  = pyqtSignal(str, str)
+    show_info_msg   = pyqtSignal(str, str)
 
 class FetchDataWorker(QRunnable):
     def __init__(self, server, username, password, parent=None):
@@ -61,7 +72,13 @@ class FetchDataWorker(QRunnable):
                 'Series': []
             }
 
-            headers = {'User-Agent': CUSTOM_USER_AGENT}
+            #Create header
+            headers = {
+                "Connection": CONNECTION_HEADER,
+                "Accept-Encoding": CONTENT_HEADER,
+                "User-Agent": self.parent.current_user_agent
+            }
+
             params = {
                 'username': self.username,
                 'password': self.password,
@@ -70,27 +87,37 @@ class FetchDataWorker(QRunnable):
 
             host_url = f"{self.server}/player_api.php"
 
-            print("Going to receive data")
+            print("Going to fetch IPTV data")
 
             #Get IPTV info
             self.signals.progress_bar.emit(0, 5, "Fetching IPTV info")
             try:
-                iptv_info_resp = requests.get(host_url, params=params, headers=headers, timeout=10)
-                # iptv_info_resp.raise_for_status()
+                iptv_info_resp = requests.get(host_url, params=params, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
+                iptv_info_resp.raise_for_status()
+
                 iptv_info_data = iptv_info_resp.json()
             except Exception as e:
+                iptv_info_data = {}
+
                 print(f"failed fetching IPTV data: {e}")
 
             #Load cached data
-            print("Loading cached data")
             cached_data = {}
 
-            cache_path = path.join(path.dirname(path.abspath(__file__)), "all_cached_data.json")
             #Check if cache file exists
-            if path.isfile(cache_path):
-                print("cache file is there")
-                with open("all_cached_data.json", 'r') as cache_file:
-                    cached_data = json.load(cache_file)
+            if path.isfile(self.parent.cache_file):
+                print("Cache file is there")
+
+                try:
+                    print("Loading cached data")
+                    with open(self.parent.cache_file, 'r') as cache_file:
+                        cached_data = json.load(cache_file)
+                except Exception as e:
+                    cached_data = {}
+
+                    self.signals.show_error_msg.emit('Failed loading cache file', 
+                            "Failed loading cache file.\n"
+                            "Please check if it is empty or corrupted.")
 
             config = configparser.ConfigParser()
             config.read(self.parent.user_data_file)
@@ -104,12 +131,12 @@ class FetchDataWorker(QRunnable):
                 entries_per_stream_type['Series'] = cached_data['Series']
             else:
                 #Get all category data
-                print("Fetching categories")
+                print("Fetching Live TV categories")
                 self.signals.progress_bar.emit(5, 10, "Fetching LIVE Categories")
                 try:
                     params['action'] = 'get_live_categories'
-                    live_category_resp = requests.get(host_url, params=params, headers=headers, timeout=10)
-                    # print(live_category_resp.raise_for_status())
+                    live_category_resp = requests.get(host_url, params=params, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
+                    live_category_resp.raise_for_status()  #Raises HTTP error is status is 4xx or 5xx
 
                     categories_per_stream_type['LIVE'] = live_category_resp.json()
                 except Exception as e:
@@ -119,11 +146,23 @@ class FetchDataWorker(QRunnable):
                         print("Getting LIVE categories from cache")
                         categories_per_stream_type['LIVE'] = cached_data['LIVE categories']
 
+                        #Notify user that data is fetched from cache file
+                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                            "Couldn't get Live TV categories from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.\n"
+                            "Fortunately, Live TV categories could be loaded from cache.")
+                    else:
+                        #Display error msg that data fetching failed
+                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                            "Couldn't get Live TV categories from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.")
+
+                print("Fetching Movies categories")
                 self.signals.progress_bar.emit(10, 20, "Fetching VOD Categories")
                 try:
                     params['action'] = 'get_vod_categories'
-                    movies_category_resp = requests.get(host_url, params=params, headers=headers, timeout=10)
-                    # print(movies_category_resp.raise_for_status())
+                    movies_category_resp = requests.get(host_url, params=params, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
+                    movies_category_resp.raise_for_status()  #Raises HTTP error is status is 4xx or 5xx
 
                     categories_per_stream_type['Movies'] = movies_category_resp.json()
                 except Exception as e:
@@ -133,11 +172,23 @@ class FetchDataWorker(QRunnable):
                         print("Getting Movies categories from cache")
                         categories_per_stream_type['Movies'] = cached_data['Movies categories']
 
+                        #Notify user that data is fetched from cache file
+                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                            "Couldn't get Movies categories from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.\n"
+                            "Fortunately, Movies categories could be loaded from cache.")
+                    else:
+                        #Display error msg that data fetching failed
+                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                            "Couldn't get Movies categories from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.")
+
+                print("Fetching Series categories")
                 self.signals.progress_bar.emit(20, 30, "Fetching Series Categories")
                 try:
                     params['action'] = 'get_series_categories'
-                    series_category_resp = requests.get(host_url, params=params, headers=headers, timeout=10)
-                    # print(series_category_resp.raise_for_status())
+                    series_category_resp = requests.get(host_url, params=params, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
+                    series_category_resp.raise_for_status()  #Raises HTTP error is status is 4xx or 5xx
 
                     categories_per_stream_type['Series'] = series_category_resp.json()
                 except Exception as e:
@@ -147,13 +198,24 @@ class FetchDataWorker(QRunnable):
                         print("Getting Series categories from cache")
                         categories_per_stream_type['Series'] = cached_data['Series categories']
 
-                print("Fetching streaming data")
+                        #Notify user that data is fetched from cache file
+                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                            "Couldn't get Series categories from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.\n"
+                            "Fortunately, Series categories could be loaded from cache.")
+                    else:
+                        #Display error msg that data fetching failed
+                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                            "Couldn't get Series categories from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.")
+
+                print("Fetching Live TV streaming data")
                 #Get all streaming data
                 self.signals.progress_bar.emit(30, 40, "Fetching LIVE Streaming data")
                 try:
                     params['action'] = 'get_live_streams'
-                    live_streams_resp = requests.get(host_url, params=params, headers=headers, timeout=10)
-                    # print(live_streams_resp.raise_for_status())
+                    live_streams_resp = requests.get(host_url, params=params, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
+                    live_streams_resp.raise_for_status()  #Raises HTTP error is status is 4xx or 5xx
 
                     entries_per_stream_type['LIVE'] = live_streams_resp.json()
                 except Exception as e:
@@ -163,11 +225,23 @@ class FetchDataWorker(QRunnable):
                         print("Getting LIVE streams from cache")
                         entries_per_stream_type['LIVE'] = cached_data['LIVE']
 
+                        #Notify user that data is fetched from cache file
+                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                            "Couldn't get Live TV streams from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.\n"
+                            "Fortunately, Live TV streams could be loaded from cache.")
+                    else:
+                        #Display error msg that data fetching failed
+                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                            "Couldn't get Live TV streams from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.")
+
+                print("Fetching Movies streaming data")
                 self.signals.progress_bar.emit(40, 60, "Fetching VOD Streaming data")
                 try:
                     params['action'] = 'get_vod_streams'
-                    movies_streams_resp = requests.get(host_url, params=params, headers=headers, timeout=10)
-                    # print(movies_streams_resp.raise_for_status())
+                    movies_streams_resp = requests.get(host_url, params=params, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
+                    movies_streams_resp.raise_for_status()  #Raises HTTP error is status is 4xx or 5xx
 
                     entries_per_stream_type['Movies'] = movies_streams_resp.json()
                 except Exception as e:
@@ -177,11 +251,23 @@ class FetchDataWorker(QRunnable):
                         print("Getting Movies streams from cache")
                         entries_per_stream_type['Movies'] = cached_data['Movies']
 
+                        #Notify user that data is fetched from cache file
+                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                            "Couldn't get Movies streams from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.\n"
+                            "Fortunately, Movies streams could be loaded from cache.")
+                    else:
+                        #Display error msg that data fetching failed
+                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                            "Couldn't get Movies streams from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.")
+
+                print("Fetching Series streaming data")
                 self.signals.progress_bar.emit(60, 80, "Fetching Series Streaming data")
                 try:
                     params['action'] = 'get_series'
-                    series_streams_resp = requests.get(host_url, params=params, headers=headers, timeout=10)
-                    # print(series_streams_resp.raise_for_status())
+                    series_streams_resp = requests.get(host_url, params=params, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
+                    series_streams_resp.raise_for_status()  #Raises HTTP error is status is 4xx or 5xx
 
                     entries_per_stream_type['Series'] = series_streams_resp.json()
                 except Exception as e:
@@ -190,6 +276,19 @@ class FetchDataWorker(QRunnable):
                     if cached_data.get('Series', 0):
                         print("Getting Series streams from cache")
                         entries_per_stream_type['Series'] = cached_data['Series']
+
+                        #Notify user that data is fetched from cache file
+                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                            "Couldn't get Series streams from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.\n"
+                            "Fortunately, Series streams could be loaded from cache.")
+                    else:
+                        #Display error msg that data fetching failed
+                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                            "Couldn't get Series streams from IPTV provider.\n"
+                            "Please check your internet connection or if IPTV server is still online.")
+
+                print("going to create cached data")
 
                 all_cached_data = json.dumps({
                         'LIVE categories': categories_per_stream_type['LIVE'],
@@ -201,7 +300,7 @@ class FetchDataWorker(QRunnable):
                     }, 
                     indent=4)
 
-                with open("all_cached_data.json", 'w') as cache_file:
+                with open(self.parent.cache_file, 'w') as cache_file:
                     cache_file.write(all_cached_data)
 
             # self.set_progress_bar(100, "Finished loading data")
@@ -209,15 +308,14 @@ class FetchDataWorker(QRunnable):
 
             fav_data = {}
 
-            #Read favorites data file
-            fav_file_path = path.join(path.dirname(path.abspath(__file__)), self.parent.favorites_file)
             #Check if cache file exists
-            if path.isfile(fav_file_path):
-                print("fav file is there")
+            if path.isfile(self.parent.favorites_file):
+                print("Favorites file is there")
+
                 with open(self.parent.favorites_file, 'r') as fav_file:
                     fav_data = json.load(fav_file)
 
-            print("setting url in streaming data")
+            print("Preparing streaming data")
             #Make streaming URL in each entry except for the series
             for tab_name in entries_per_stream_type.keys():
                 for idx, entry in enumerate(entries_per_stream_type[tab_name]):
@@ -257,7 +355,7 @@ class FetchDataWorker(QRunnable):
             #Send received data to processing function
             self.signals.finished.emit(iptv_info_data, categories_per_stream_type, entries_per_stream_type)
 
-            print("finished loading IPTV data")
+            print("Finished downloading IPTV data")
 
         except Exception as e:
             print(f"Exception! {e}")
@@ -268,19 +366,26 @@ class MovieInfoFetcherSignals(QObject):
     error       = pyqtSignal(str)
 
 class MovieInfoFetcher(QRunnable):
-    def __init__(self, server, username, password, vod_id):
+    def __init__(self, server, username, password, vod_id, parent=None):
         super().__init__()
         self.server     = server
         self.username   = username
         self.password   = password
         self.vod_id     = vod_id
+        self.parent     = parent
         self.signals    = MovieInfoFetcherSignals()
 
     @pyqtSlot()
     def run(self):
         try:
             #Set request parameters
-            headers = {'User-Agent': CUSTOM_USER_AGENT}
+            # headers = {'User-Agent': CUSTOM_USER_AGENT}
+            #Create header
+            headers = {
+                "Connection": CONNECTION_HEADER,
+                "Accept-Encoding": CONTENT_HEADER,
+                "User-Agent": self.parent.current_user_agent
+            }
             host_url = f"{self.server}/player_api.php"
             params = {
                 'username': self.username,
@@ -290,7 +395,7 @@ class MovieInfoFetcher(QRunnable):
             }
 
             #Request vod info
-            vod_info_resp = requests.get(host_url, params=params, headers=headers, timeout=10)
+            vod_info_resp = requests.get(host_url, params=params, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
 
             #Get vod info data
             vod_info_data = vod_info_resp.json()
@@ -317,20 +422,27 @@ class SeriesInfoFetcherSignals(QObject):
     error       = pyqtSignal(str)
 
 class SeriesInfoFetcher(QRunnable):
-    def __init__(self, server, username, password, series_id, is_show_request):
+    def __init__(self, server, username, password, series_id, is_show_request, parent=None):
         super().__init__()
         self.server             = server
         self.username           = username
         self.password           = password
         self.series_id          = series_id
         self.is_show_request    = is_show_request
+        self.parent             = parent
         self.signals            = SeriesInfoFetcherSignals()
 
     @pyqtSlot()
     def run(self):
         try:
             #Set request parameters
-            headers = {'User-Agent': CUSTOM_USER_AGENT}
+            # headers = {'User-Agent': CUSTOM_USER_AGENT}
+            #Create header
+            headers = {
+                "Connection": CONNECTION_HEADER,
+                "Accept-Encoding": CONTENT_HEADER,
+                "User-Agent": self.parent.current_user_agent
+            }
             host_url = f"{self.server}/player_api.php"
             params = {
                 'username': self.username,
@@ -340,7 +452,7 @@ class SeriesInfoFetcher(QRunnable):
             }
 
             #Request series info
-            series_info_resp = requests.get(host_url, params=params, headers=headers, timeout=10)
+            series_info_resp = requests.get(host_url, params=params, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
 
             #Get series info data
             series_info_data = series_info_resp.json()
@@ -371,10 +483,16 @@ class ImageFetcher(QRunnable):
     def run(self):
         try:
             #Set header for request
-            headers = {'User-Agent': CUSTOM_USER_AGENT}
+            # headers = {'User-Agent': CUSTOM_USER_AGENT}
+            #Create header
+            headers = {
+                "Connection": CONNECTION_HEADER,
+                "Accept-Encoding": CONTENT_HEADER,
+                "User-Agent": self.parent.current_user_agent
+            }
 
             #Request image
-            image_resp = requests.get(self.img_url, headers=headers, timeout=10)
+            image_resp = requests.get(self.img_url, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
 
             #Check if response code is valid, otherwise set replacement image
             resp_status = image_resp.status_code
@@ -445,23 +563,30 @@ class EPGWorkerSignals(QObject):
     error = pyqtSignal(str)
 
 class EPGWorker(QRunnable):
-    def __init__(self, server, username, password, stream_id):
+    def __init__(self, server, username, password, stream_id, parent=None):
         super().__init__()
-        self.server = server
-        self.username = username
-        self.password = password
-        self.stream_id = stream_id
-        self.signals = EPGWorkerSignals()
+        self.server     = server
+        self.username   = username
+        self.password   = password
+        self.stream_id  = stream_id
+        self.parent     = parent
+        self.signals    = EPGWorkerSignals()
 
     @pyqtSlot()
     def run(self):
         try:
             #Creating url for requesting EPG data for specific stream
             epg_url = f"{self.server}/player_api.php?username={self.username}&password={self.password}&action=get_simple_data_table&stream_id={self.stream_id}"
-            headers = {'User-Agent': CUSTOM_USER_AGENT}
+            # headers = {'User-Agent': CUSTOM_USER_AGENT}
+            #Create header
+            headers = {
+                "Connection": CONNECTION_HEADER,
+                "Accept-Encoding": CONTENT_HEADER,
+                "User-Agent": self.parent.current_user_agent
+            }
 
             #Requesting EPG data
-            response = requests.get(epg_url, headers=headers, timeout=10)
+            response = requests.get(epg_url, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
             epg_data = response.json()
 
             #Decrypt EPG data with base 64

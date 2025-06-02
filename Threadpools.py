@@ -115,9 +115,10 @@ class FetchDataWorker(QRunnable):
                 except Exception as e:
                     cached_data = {}
 
-                    self.signals.show_error_msg.emit('Failed loading cache file', 
-                            "Failed loading cache file.\n"
-                            "Please check if it is empty or corrupted.")
+                    # self.signals.show_error_msg.emit('Failed loading cache file', 
+                    #         "Failed loading cache file.\n"
+                    #         "Please check if it is empty or corrupted.")
+                    print("Failed loading cache file. Please check if it is empty or corrupted.")
 
             config = configparser.ConfigParser()
             config.read(self.parent.user_data_file)
@@ -147,15 +148,17 @@ class FetchDataWorker(QRunnable):
                         categories_per_stream_type['LIVE'] = cached_data['LIVE categories']
 
                         #Notify user that data is fetched from cache file
-                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
-                            "Couldn't get Live TV categories from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.\n"
-                            "Fortunately, Live TV categories could be loaded from cache.")
+                        # self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                        #     "Couldn't get Live TV categories from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.\n"
+                        #     "Fortunately, Live TV categories could be loaded from cache.")
+                        print("Failed fetching Live TV categories. Got them from cache.")
                     else:
                         #Display error msg that data fetching failed
-                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
-                            "Couldn't get Live TV categories from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.")
+                        # self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                        #     "Couldn't get Live TV categories from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.")
+                        print("Failed fetching Live TV categories")
 
                 print("Fetching Movies categories")
                 self.signals.progress_bar.emit(10, 20, "Fetching VOD Categories")
@@ -173,15 +176,17 @@ class FetchDataWorker(QRunnable):
                         categories_per_stream_type['Movies'] = cached_data['Movies categories']
 
                         #Notify user that data is fetched from cache file
-                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
-                            "Couldn't get Movies categories from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.\n"
-                            "Fortunately, Movies categories could be loaded from cache.")
+                        # self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                        #     "Couldn't get Movies categories from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.\n"
+                        #     "Fortunately, Movies categories could be loaded from cache.")
+                        print("Failed fetching Movies categories. Got them from cache.")
                     else:
                         #Display error msg that data fetching failed
-                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
-                            "Couldn't get Movies categories from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.")
+                        # self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                        #     "Couldn't get Movies categories from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.")
+                        print("Failed fetching Movies categories")
 
                 print("Fetching Series categories")
                 self.signals.progress_bar.emit(20, 30, "Fetching Series Categories")
@@ -199,15 +204,17 @@ class FetchDataWorker(QRunnable):
                         categories_per_stream_type['Series'] = cached_data['Series categories']
 
                         #Notify user that data is fetched from cache file
-                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
-                            "Couldn't get Series categories from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.\n"
-                            "Fortunately, Series categories could be loaded from cache.")
+                        # self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                        #     "Couldn't get Series categories from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.\n"
+                        #     "Fortunately, Series categories could be loaded from cache.")
+                        print("Failed fetching Series categories. Got them from cache.")
                     else:
                         #Display error msg that data fetching failed
-                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
-                            "Couldn't get Series categories from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.")
+                        # self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                        #     "Couldn't get Series categories from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.")
+                        print("Failed fetching Series categories")
 
                 print("Fetching Live TV streaming data")
                 #Get all streaming data
@@ -226,15 +233,17 @@ class FetchDataWorker(QRunnable):
                         entries_per_stream_type['LIVE'] = cached_data['LIVE']
 
                         #Notify user that data is fetched from cache file
-                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
-                            "Couldn't get Live TV streams from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.\n"
-                            "Fortunately, Live TV streams could be loaded from cache.")
+                        # self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                        #     "Couldn't get Live TV streams from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.\n"
+                        #     "Fortunately, Live TV streams could be loaded from cache.")
+                        print("Failed fetching Live TV streams. Got them from cache.")
                     else:
                         #Display error msg that data fetching failed
-                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
-                            "Couldn't get Live TV streams from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.")
+                        # self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                        #     "Couldn't get Live TV streams from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.")
+                        print("Failed fetching Live TV streams")
 
                 print("Fetching Movies streaming data")
                 self.signals.progress_bar.emit(40, 60, "Fetching VOD Streaming data")
@@ -252,15 +261,17 @@ class FetchDataWorker(QRunnable):
                         entries_per_stream_type['Movies'] = cached_data['Movies']
 
                         #Notify user that data is fetched from cache file
-                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
-                            "Couldn't get Movies streams from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.\n"
-                            "Fortunately, Movies streams could be loaded from cache.")
+                        # self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                        #     "Couldn't get Movies streams from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.\n"
+                        #     "Fortunately, Movies streams could be loaded from cache.")
+                        print("Failed fetching Movies streams. Got them from cache.")
                     else:
                         #Display error msg that data fetching failed
-                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
-                            "Couldn't get Movies streams from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.")
+                        # self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                        #     "Couldn't get Movies streams from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.")
+                        print("Failed fetching Live TV streams")
 
                 print("Fetching Series streaming data")
                 self.signals.progress_bar.emit(60, 80, "Fetching Series Streaming data")
@@ -278,15 +289,17 @@ class FetchDataWorker(QRunnable):
                         entries_per_stream_type['Series'] = cached_data['Series']
 
                         #Notify user that data is fetched from cache file
-                        self.signals.show_info_msg.emit('Getting IPTV data from cache', 
-                            "Couldn't get Series streams from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.\n"
-                            "Fortunately, Series streams could be loaded from cache.")
+                        # self.signals.show_info_msg.emit('Getting IPTV data from cache', 
+                        #     "Couldn't get Series streams from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.\n"
+                        #     "Fortunately, Series streams could be loaded from cache.")
+                        print("Failed fetching Series streams. Got them from cache.")
                     else:
                         #Display error msg that data fetching failed
-                        self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
-                            "Couldn't get Series streams from IPTV provider.\n"
-                            "Please check your internet connection or if IPTV server is still online.")
+                        # self.signals.show_error_msg.emit('Failed fetching data from IPTV provider', 
+                        #     "Couldn't get Series streams from IPTV provider.\n"
+                        #     "Please check your internet connection or if IPTV server is still online.")
+                        print("Failed fetching Series streams")
 
                 print("going to create cached data")
 
@@ -324,6 +337,13 @@ class FetchDataWorker(QRunnable):
                     stream_id           = entry.get("stream_id", -1)
                     series_id           = entry.get("series_id", -1)
                     container_extension = entry.get("container_extension", "m3u8")
+
+                    #Correct for any vague other stream types. Series stream type is already fixed by code above.
+                    if "live" in stream_type:
+                        stream_type = "live"
+
+                    if "movie" in stream_type:
+                        stream_type = "movie"
 
                     #Check if stream_id is valid
                     if stream_id:

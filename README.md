@@ -83,10 +83,11 @@ pyinstaller --version
 ## Rocky9/RHEL9 Project Setup Instructions
 
 ### 1. Install latest Python 3
-- Tested with Python 3.13.4
-NB:  The following dependencies must be installed: `dnf install python3-dev python-dev`
-If you are building Python by yourself, rebuild with `--enable-shared` (or, `--enable-framework` on macOS).
-To compile Python yourself, download the [source code](https://www.python.org/downloads/source/)
+- To compile Python yourself, download the [source code](https://www.python.org/downloads/source/)
+- Tested with Python 3.13.4\
+ _Note:_  The following dependencies must be installed:\
+`dnf install python3-dev python-dev`\
+If you are building Python by yourself, rebuild with `--enable-shared` (or, `--enable-framework` on macOS).\
 
 ### 2. Open a Terminal and install all dependencies
 
@@ -96,7 +97,7 @@ python3 -m pip install --upgrade setuptools
 python3 -m pip install --upgrade pyinstaller
 python3 -m pip install --upgrade requests lxml python-dateutil PyQt5
 ```
-NB: If you are not logged in as root (which is recommended), you need to ensure that `pyInstaller` is included in your PATH environment variable:
+_Note:_ If you are not logged in as root (which is recommended), you need to ensure that `pyInstaller` is included in your PATH environment variable:
 ```bash
 export PATH=$PATH:$HOME/.local/bin
 ```
@@ -109,5 +110,6 @@ pyinstaller --version
 ```
 
 ### 4. Final Setup
-- Make the SH script executable with the command `chmod +x build_iptv_player.sh`
+- Make the SH script executable with the command:\
+`chmod +x build_iptv_player.sh`
 - Run the [./build_iptv_player.sh](build_iptv_player.sh) file to start the process.

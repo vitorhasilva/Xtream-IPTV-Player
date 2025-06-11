@@ -31,7 +31,7 @@ from CustomPyQtWidgets import LiveInfoBox, MovieInfoBox, SeriesInfoBox
 import Threadpools
 from Threadpools import FetchDataWorker, SearchWorker, EPGWorker, MovieInfoFetcher, SeriesInfoFetcher, ImageFetcher
 
-CURRENT_VERSION = "V1.02.01"
+CURRENT_VERSION = "V1.02.02"
 
 is_windows  = sys.platform.startswith('win')
 is_mac      = sys.platform.startswith('darwin')
@@ -138,9 +138,12 @@ class IPTVPlayerApp(QMainWindow):
         self.sorting_order      = 0
 
         #Credentials
-        self.server     = ""
-        self.username   = ""
-        self.password   = ""
+        self.server            = ""
+        self.username          = ""
+        self.password          = ""
+        self.live_url_format   = ""
+        self.movie_url_format  = ""
+        self.series_url_format = ""
 
         #Create threadpool
         self.threadpool = QThreadPool()
@@ -818,16 +821,23 @@ class IPTVPlayerApp(QMainWindow):
                 data = config['Credentials'][selected_startup_account]
 
                 if data.startswith('manual|'):
-                    _, server, username, password = data.split('|')
+                    _, server, username, password, live_url_format, movie_url_format, series_url_format = data.split('|')
 
-                    self.server     = server
-                    self.username   = username
-                    self.password   = password
+                    self.server            = server
+                    self.username          = username
+                    self.password          = password
+                    self.live_url_format   = live_url_format
+                    self.movie_url_format  = movie_url_format
+                    self.series_url_format = series_url_format
 
                     self.login()
 
                 elif data.startswith('m3u_plus|'):
-                    _, m3u_url = data.split('|', 1)
+                    _, m3u_url, live_url_format, movie_url_format, series_url_format = data.split('|')
+
+                    self.live_url_format   = live_url_format
+                    self.movie_url_format  = movie_url_format
+                    self.series_url_format = series_url_format
 
                     #Get credentials from M3U plus url and check if valid
                     if self.extract_credentials_from_m3u_plus_url(m3u_url):
@@ -935,7 +945,7 @@ class IPTVPlayerApp(QMainWindow):
         self.set_progress_bar(0, "Going to fetch data...")
 
     def fetch_data_thread(self):
-        dataWorker = FetchDataWorker(self.server, self.username, self.password, self)
+        dataWorker = FetchDataWorker(self.server, self.username, self.password, self.live_url_format, self.movie_url_format, self.series_url_format, self)
         dataWorker.signals.finished.connect(self.process_data)
         dataWorker.signals.error.connect(self.on_fetch_data_error)
         dataWorker.signals.progress_bar.connect(self.animate_progress)
@@ -1790,7 +1800,23 @@ class IPTVPlayerApp(QMainWindow):
             #Make playable url
             container_extension = episode['container_extension']
             episode_id          = episode['id']
-            playable_url = f"{self.server}/series/{self.username}/{self.password}/{episode_id}.{container_extension}"
+
+            fmt = self.series_url_format
+            # If the format does not include the container extension placeholder, skip it
+            if ".{container_extension}" not in fmt:
+                container_extension = ""
+                # Optionally remove any trailing dot left in format
+                fmt = fmt.replace(".{container_extension}", "")
+                
+            # Construct the URL
+            playable_url = fmt.format(
+                server=self.server,
+                username=self.username,
+                password=self.password,
+                stream_id=episode_id,
+                container_extension=container_extension
+            )
+            # playable_url = f"{self.server}/series/{self.username}/{self.password}/{episode_id}.{container_extension}"
 
             #Add new 'url' key to episode data
             episode['url'] = playable_url

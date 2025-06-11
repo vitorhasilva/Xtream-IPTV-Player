@@ -157,7 +157,7 @@ class AccountManager(QtWidgets.QDialog):
                     self.parent.login()
 
                 elif data.startswith('m3u_plus|'):
-                    _, m3u_url, live_url_format, movie_url_format, series_url_format = data.split('|', 1)
+                    _, m3u_url, live_url_format, movie_url_format, series_url_format = data.split('|')
 
                     self.parent.live_url_format   = live_url_format
                     self.parent.movie_url_format  = movie_url_format

@@ -57,7 +57,7 @@ Download the latest version here: [Latest releases](https://github.com/Youri666/
 ### 1. Install latest Python 3
 - Run the [latest Python 3 installer](https://www.python.org/downloads/).
 - During installation, make sure to:
-  - **Use administrator privileges** when installing `py.exe`
+  - **Use administrator privileges** when installing Python
   - **Add `python.exe` to the system PATH**
   - Select any other appropriate options as prompted
 

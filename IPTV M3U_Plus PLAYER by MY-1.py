@@ -53,6 +53,15 @@ class IPTVPlayerApp(QMainWindow):
         self.user_data_file = "userdata.ini"
         self.favorites_file = "favorites.json"
         self.cache_file     = "all_cached_data.json"
+        # Default values for URL formats
+        self.default_url_formats = {
+            'live': "{server}/live/{username}/{password}/{stream_id}.{container_extension}",
+            'movie': "{server}/movie/{username}/{password}/{stream_id}.{container_extension}",
+            'series': "{server}/series/{username}/{password}/{stream_id}.{container_extension}"
+        }
+
+        # Update the .ini file if needed to maintain backward compatibility.
+        self.updateUserDataFile()
 
         self.path_to_window_icon    = path.abspath(path.join(path.dirname(__file__), 'Images/TV_icon.ico'))
         self.path_to_no_img         = path.abspath(path.join(path.dirname(__file__), 'Images/no_image.jpg'))
@@ -202,6 +211,36 @@ class IPTVPlayerApp(QMainWindow):
         #Add everything to the main_layout
         main_layout.addWidget(self.tab_widget)
         main_layout.addWidget(self.progress_bar)
+
+    def updateUserDataFile(self):
+        # Load the configuration file
+        config = configparser.ConfigParser()
+        config.read(self.user_data_file)
+
+        # Check if 'Credentials' section exists
+        if 'Credentials' in config:
+            for account_name, data in config['Credentials'].items():
+                parts = data.split('|')
+
+                # Determine the required length and default values based on the method
+                if data.startswith('manual|'):
+                    required_length = 7
+                elif data.startswith('m3u_plus|'):
+                    required_length = 5
+                else:
+                    continue  # Skip if the method is not recognized
+
+                # Update to new format with default values if necessary
+                if len(parts) < required_length:
+                    parts += [self.default_url_formats['live'],
+                              self.default_url_formats['movie'],
+                              self.default_url_formats['series']][:required_length - len(parts)]
+                    config['Credentials'][account_name] = "|".join(parts)
+
+            # Write the updated configuration back to the file
+            with open(self.user_data_file, 'w') as config_file:
+                config.write(config_file)
+
 
     def initIcons(self):
         #Set tab icon size to 24x24
@@ -811,11 +850,6 @@ class IPTVPlayerApp(QMainWindow):
         config = configparser.ConfigParser()
         config.read(self.user_data_file)
 
-        # Default values for URL formats (ensure compatibility with old .ini file)
-        default_live_url_format = "{server}/live/{username}/{password}/{stream_id}.{container_extension}"
-        default_movie_url_format = "{server}/movie/{username}/{password}/{stream_id}.{container_extension}"
-        default_series_url_format = "{server}/series/{username}/{password}/{stream_id}.{container_extension}"
-
         #If startup credentials is in user data file
         if 'Startup credentials' in config:
             #Get selected account used for startup
@@ -824,17 +858,9 @@ class IPTVPlayerApp(QMainWindow):
             #Check if account credentials are in user data file
             if 'Credentials' in config and selected_startup_account in config['Credentials']:
                 data = config['Credentials'][selected_startup_account]
+                parts = data.split('|')
 
                 if data.startswith('manual|'):
-                    parts = data.split('|')
-                    # Check if the old format is detected
-                    if len(parts) < 7:
-                        # Update to new format with default values
-                        parts += [default_live_url_format, default_movie_url_format, default_series_url_format]
-                        config['Credentials'][selected_startup_account] = "|".join(parts)
-                        with open(self.user_data_file, 'w') as config_file:
-                            config.write(config_file)
-
                     server, username, password, live_url_format, movie_url_format, series_url_format = parts[1:7]
 
                     self.server            = server
@@ -847,15 +873,6 @@ class IPTVPlayerApp(QMainWindow):
                     self.login()
 
                 elif data.startswith('m3u_plus|'):
-                    parts = data.split('|')
-                    # Check if the old format is detected
-                    if len(parts) < 5:
-                        # Update to new format with default values
-                        parts += [default_live_url_format, default_movie_url_format, default_series_url_format]
-                        config['Credentials'][selected_startup_account] = "|".join(parts)
-                        with open(self.user_data_file, 'w') as config_file:
-                            config.write(config_file)
-
                     m3u_url, live_url_format, movie_url_format, series_url_format = parts[1:5]
 
                     self.live_url_format   = live_url_format

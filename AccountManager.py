@@ -260,6 +260,7 @@ class AccountDialog(QtWidgets.QDialog):
 
     def __init__(self, parent=None, mode=MODE_ADD, account=None):
         super().__init__(parent)
+        self.parent = parent
         self.mode = mode
         self.account = account
         self.setWindowTitle("Edit Credentials" if self.mode == self.MODE_EDIT else "Add Credentials")
@@ -268,8 +269,9 @@ class AccountDialog(QtWidgets.QDialog):
     def setupUi(self):
         layout = QVBoxLayout(self)
 
-        self.manual_entry_name      = "Manual/Xtream entry"
-        self.m3u_plus_entry_name    = "M3U_plus URL entry"
+        self.manual_entry_name    = "Manual/Xtream entry"
+        self.m3u_plus_entry_name  = "M3U_plus URL entry"
+        self.default_url_formats  = self.parent.parent.default_url_formats
 
         # Connection method
         self.method_selector = QtWidgets.QComboBox()
@@ -291,9 +293,9 @@ class AccountDialog(QtWidgets.QDialog):
         self.password_entry     = QLineEdit()
         self.password_entry.setEchoMode(QLineEdit.Password)
 
-        self.live_url_format_entry = QLineEdit("{server}/live/{username}/{password}/{stream_id}.{container_extension}")
-        self.movie_url_format_entry = QLineEdit("{server}/movie/{username}/{password}/{stream_id}.{container_extension}")
-        self.series_url_format_entry = QLineEdit("{server}/series/{username}/{password}/{stream_id}.{container_extension}")
+        self.live_url_format_entry = QLineEdit(self.default_url_formats['live'])
+        self.movie_url_format_entry = QLineEdit(self.default_url_formats['movie'])
+        self.series_url_format_entry = QLineEdit(self.default_url_formats['series'])
 
         manual_layout.addRow("Name:", self.name_entry_manual)
         manual_layout.addRow("Server URL:", self.server_entry)
@@ -316,9 +318,9 @@ class AccountDialog(QtWidgets.QDialog):
         self.name_entry_m3u = QLineEdit()
         self.m3u_url_entry  = QLineEdit()
 
-        self.m3u_live_url_format_entry = QLineEdit("{server}/live/{username}/{password}/{stream_id}.{container_extension}")
-        self.m3u_movie_url_format_entry = QLineEdit("{server}/movie/{username}/{password}/{stream_id}.{container_extension}")
-        self.m3u_series_url_format_entry = QLineEdit("{server}/series/{username}/{password}/{stream_id}.{container_extension}")
+        self.m3u_live_url_format_entry = QLineEdit(self.default_url_formats['live'])
+        self.m3u_movie_url_format_entry = QLineEdit(self.default_url_formats['movie'])
+        self.m3u_series_url_format_entry = QLineEdit(self.default_url_formats['series'])
 
         m3u_layout.addRow("Name:", self.name_entry_m3u)
         m3u_layout.addRow("m3u_plus URL:", self.m3u_url_entry)

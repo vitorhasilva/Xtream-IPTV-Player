@@ -24,10 +24,10 @@ IF EXIST %DIST_PATH% (
 REM Run PyInstaller directly with all necessary options and added data files
 %PYINSTALLER% ^
   --onefile ^
-  --icon "Images/TV_icon.ico" ^
-  --name "IPTV_Player" ^
   --noconsole ^
   --noconfirm ^
+  --icon "Images/TV_icon.ico" ^
+  --name "IPTV_Player" ^
   --workpath %BUILD_PATH% ^
   --distpath %DIST_PATH% ^
   --add-data "Images/TV_icon.ico;Images" ^

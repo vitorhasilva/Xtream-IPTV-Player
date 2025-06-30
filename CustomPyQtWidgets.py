@@ -61,8 +61,8 @@ class LiveInfoBox(QWidget):
 
         #Create title layout with favorites button
         self.title_layout = QHBoxLayout()
-        self.title_layout.addWidget(self.EPG_box_label)
         self.title_layout.addWidget(self.fav_button)
+        self.title_layout.addWidget(self.EPG_box_label)
 
         #Add TV channel label and EPG data to info box
         self.live_EPG_info_box_layout.addLayout(self.title_layout)
@@ -158,8 +158,8 @@ class MovieInfoBox(QScrollArea):
 
         #Create layout with title and favorite button
         self.title_layout = QHBoxLayout()
-        self.title_layout.addWidget(self.name)
         self.title_layout.addWidget(self.fav_button)
+        self.title_layout.addWidget(self.name)
 
         #Create layout with YouTube and TMDB icon next to each other
         self.links_layout = QHBoxLayout()
@@ -286,8 +286,8 @@ class SeriesInfoBox(QScrollArea):
 
         #Create layout with title and favorite button
         self.title_layout = QHBoxLayout()
-        self.title_layout.addWidget(self.name)
         self.title_layout.addWidget(self.fav_button)
+        self.title_layout.addWidget(self.name)
 
         #Create layout with YouTube and TMDB icon next to each other
         self.links_layout = QHBoxLayout()

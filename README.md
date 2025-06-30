@@ -26,6 +26,7 @@ Download the latest version here: [Latest releases](https://github.com/Youri666/
 - **Recommended Player:** For optimal performance, use SMPlayer. Download it at: https://www.smplayer.info
 
 # Future plans
+- **M3U file support**: Select M3U file or URL to M3U file to load data from.
 - **Home tab:** Home tab with previously watched and popular movies and series.
 - **TMDB support:** Much more information about movies and series with the TMDB API.
 - **Improve startup loading time:** Improve loading time at startup by optionally loading the IPTV data from cache.

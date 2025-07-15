@@ -1559,19 +1559,24 @@ class IPTVPlayerApp(QMainWindow):
         except Exception as e:
             print(f"Failed: {e}")
 
-    def startOnlineWorker(self, url):
+    def startOnlineWorker(self, stream_id, url):
         #Create Stream Status thread worker that will determine if stream looks online or not
-        online_worker = OnlineWorker(url, self)
+        online_worker = OnlineWorker(stream_id, url, self)
         online_worker.signals.finished.connect(self.ProcessStreamStatus)
         self.threadpool.start(online_worker)
 
-    def ProcessStreamStatus(self, stream_status):
+    def ProcessStreamStatus(self, stream_id, stream_status):
+        #Ensure user hasn't changed live channel before request came through
+        last_clicked_item = self.prev_clicked_streaming_item.data(Qt.UserRole)
+        if (stream_id != last_clicked_item['stream_id']):
+            return
+
         if (stream_status == "True"):
-            self.live_info_box.stream_status.setPixmap(QPixmap(self.path_to_online_status_icon).scaledToWidth(25))
+            self.live_info_box.stream_status.setPixmap(QPixmap(self.path_to_online_status_icon).scaledToWidth(24))
         elif (stream_status == "Maybe"):
-            self.live_info_box.stream_status.setPixmap(QPixmap(self.path_to_maybe_status_icon).scaledToWidth(25))
+            self.live_info_box.stream_status.setPixmap(QPixmap(self.path_to_maybe_status_icon).scaledToWidth(24))
         else:
-            self.live_info_box.stream_status.setPixmap(QPixmap(self.path_to_offline_status_icon).scaledToWidth(25))
+            self.live_info_box.stream_status.setPixmap(QPixmap(self.path_to_offline_status_icon).scaledToWidth(24))
 
     def startEPGWorker(self, stream_id):
         #Create EPG thread worker that will fetch EPG data
@@ -1714,7 +1719,7 @@ class IPTVPlayerApp(QMainWindow):
                 self.fetch_image(clicked_item_data['stream_icon'], 'Live')
 
                 # Fetch stream status
-                self.startOnlineWorker(clicked_item_data['url'])
+                self.startOnlineWorker(clicked_item_data['stream_id'], clicked_item_data['url'])
 
                 #Fetch EPG data
                 self.startEPGWorker(clicked_item_data['stream_id'])
@@ -1970,8 +1975,6 @@ class IPTVPlayerApp(QMainWindow):
                 print(f"Going to play: {url}")
                 self.animate_progress(0, 100, "Loading player for streaming")
 
-                user_agent_argument = f":http-user-agent={self.current_user_agent}"
- 
                 if is_linux:
                     # Ensure the external player command is executable
                     if not os.access(self.external_player_command, os.X_OK):
@@ -1993,7 +1996,10 @@ class IPTVPlayerApp(QMainWindow):
                         subprocess.Popen(mpv_player)
                         return
                 
-                subprocess.Popen([self.external_player_command, url, user_agent_argument])
+                # no specific support, just run with VLC user agent argument
+                user_agent_argument = f"--http-user-agent=\"{self.current_user_agent}\""
+                default_player = f"{self.external_player_command} {user_agent_argument} \"{url}\""
+                subprocess.Popen(default_player)
             except Exception as e:
                 self.animate_progress(0, 100, "Failed playing stream")
                 print(f"Failed playing stream [{url}]: {e}")

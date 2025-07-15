@@ -41,6 +41,7 @@ DEFAULT_USER_AGENT_HEADER   = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWe
 
 CONNECTION_TIMEOUT  = 3
 READ_TIMEOUT        = 10
+LIVE_STATUS_TIMEOUT = 7
 
 class FetchDataWorkerSignals(QObject):
     finished        = pyqtSignal(dict, dict, dict)
@@ -677,11 +678,12 @@ class EPGWorker(QRunnable):
             print(f"failed decrypting: {e}")
 
 class OnlineWorkerSignals(QObject):
-    finished = pyqtSignal(str)
+    finished = pyqtSignal(int, str)
 
 class OnlineWorker(QRunnable):
-    def __init__(self, url, parent=None):
+    def __init__(self, stream_id, url, parent=None):
         super().__init__()
+        self.stream_id  = int(stream_id)
         self.url        = url
         self.parent     = parent
         self.signals    = OnlineWorkerSignals()
@@ -697,19 +699,19 @@ class OnlineWorker(QRunnable):
             }
 
             #Requesting stream playlist data
-            response = requests.get(self.url, headers=headers, timeout=(CONNECTION_TIMEOUT, READ_TIMEOUT))
+            response = requests.get(self.url, headers=headers, timeout=(CONNECTION_TIMEOUT, LIVE_STATUS_TIMEOUT))
             response_code = response.status_code
             url_data = response.text
 
             #Determine if stream looks offline or not
             stream_offline = self.checkStatus(response_code, url_data)
 
-            self.signals.finished.emit(str(stream_offline))
+            self.signals.finished.emit(self.stream_id, str(stream_offline))
         except Exception as e:
-            self.signals.finished.emit(str(False))
+            self.signals.finished.emit(self.stream_id, str(False))
 
     def checkStatus(self, response_code, url_data):
-        if response_code != 200:
+        if response_code != 200:  # need HTTP OK status
             return False
 
         if "offline" in url_data: #some providers use offline.m3u8 as a dummy video file
@@ -718,8 +720,8 @@ class OnlineWorker(QRunnable):
         if "EXT-X-ENDLIST" in url_data: #m3u file is saying stream is over
             return False
         
-        if "#EXT-X-MEDIA-SEQUENCE:0" in url_data: #some providers respond with a fresh "Stream starting soon" stream
-            return "Maybe"                        #this technically just means a stream is freshly started, hence the "Maybe" online
-                                                  #officially, see https://datatracker.ietf.org/doc/html/rfc8216#section-4.3.3.2
+        if "#EXT-X-MEDIA-SEQUENCE:0" in url_data:                 #some providers respond with a fresh "Stream starting soon" stream
+            if "_0.ts" in url_data and "_1.ts" not in url_data:   #this technically just means a stream is freshly started, hence the "Maybe" online
+                return "Maybe"                                    #officially, see https://datatracker.ietf.org/doc/html/rfc8216#section-4.3.3.2   
 
         return True

@@ -66,34 +66,34 @@ class IPTVPlayerApp(QMainWindow):
         # Update the .ini file if needed to maintain backward compatibility.
         self.updateUserDataFile()
 
-        self.path_to_window_icon    = path.abspath(path.join(path.dirname(__file__), 'Images/TV_icon.ico'))
-        self.path_to_no_img         = path.abspath(path.join(path.dirname(__file__), 'Images/no_image.jpg'))
-        self.path_to_loading_img    = path.abspath(path.join(path.dirname(__file__), 'Images/loading-icon.png'))
-        self.path_to_404_img        = path.abspath(path.join(path.dirname(__file__), 'Images/404_not_found.png'))
+        self.path_to_window_icon            = path.abspath(path.join(path.dirname(__file__), 'Images/TV_icon.ico'))
+        self.path_to_no_img                 = path.abspath(path.join(path.dirname(__file__), 'Images/no_image.jpg'))
+        self.path_to_loading_img            = path.abspath(path.join(path.dirname(__file__), 'Images/loading-icon.png'))
+        self.path_to_404_img                = path.abspath(path.join(path.dirname(__file__), 'Images/404_not_found.png'))
+        
+        self.path_to_yt_img                 = path.abspath(path.join(path.dirname(__file__), 'Images/yt_icon_rgb.png'))
+        self.path_to_tmdb_img               = path.abspath(path.join(path.dirname(__file__), 'Images/primary_full-TMDB.svg'))
+        
+        self.path_to_home_icon              = path.abspath(path.join(path.dirname(__file__), 'Images/home_tab_icon.ico'))
+        self.path_to_live_icon              = path.abspath(path.join(path.dirname(__file__), 'Images/tv_tab_icon.ico'))
+        self.path_to_movies_icon            = path.abspath(path.join(path.dirname(__file__), 'Images/movies_tab_icon.ico'))
+        self.path_to_series_icon            = path.abspath(path.join(path.dirname(__file__), 'Images/series_tab_icon.ico'))
+        self.path_to_favorites_icon         = path.abspath(path.join(path.dirname(__file__), 'Images/favorite_tab_icon.ico'))
+        self.path_to_fav_colour_icon        = path.abspath(path.join(path.dirname(__file__), 'Images/favorite_tab_icon_colour.ico'))
+        self.path_to_online_status_icon     = path.abspath(path.join(path.dirname(__file__), 'Images/online_status.png'))
+        self.path_to_offline_status_icon    = path.abspath(path.join(path.dirname(__file__), 'Images/offline_status.png'))
+        self.path_to_maybe_status_icon      = path.abspath(path.join(path.dirname(__file__), 'Images/maybe_status.png'))
+        self.path_to_unknown_status_icon    = path.abspath(path.join(path.dirname(__file__), 'Images/unknown_status.png'))
+        self.path_to_info_icon              = path.abspath(path.join(path.dirname(__file__), 'Images/info_tab_icon.ico'))
+        self.path_to_settings_icon          = path.abspath(path.join(path.dirname(__file__), 'Images/settings_tab_icon.ico'))
+        
+        self.path_to_search_icon            = path.abspath(path.join(path.dirname(__file__), 'Images/search_bar_icon.ico'))
+        self.path_to_sorting_icon           = path.abspath(path.join(path.dirname(__file__), 'Images/sorting_icon.ico'))
+        self.path_to_clear_btn_icon         = path.abspath(path.join(path.dirname(__file__), 'Images/clear_button_icon.ico'))
+        self.path_to_go_back_icon           = path.abspath(path.join(path.dirname(__file__), 'Images/go_back_icon.ico'))
 
-        self.path_to_yt_img         = path.abspath(path.join(path.dirname(__file__), 'Images/yt_icon_rgb.png'))
-        self.path_to_tmdb_img       = path.abspath(path.join(path.dirname(__file__), 'Images/primary_full-TMDB.svg'))
-
-        self.path_to_home_icon      = path.abspath(path.join(path.dirname(__file__), 'Images/home_tab_icon.ico'))
-        self.path_to_live_icon      = path.abspath(path.join(path.dirname(__file__), 'Images/tv_tab_icon.ico'))
-        self.path_to_movies_icon    = path.abspath(path.join(path.dirname(__file__), 'Images/movies_tab_icon.ico'))
-        self.path_to_series_icon    = path.abspath(path.join(path.dirname(__file__), 'Images/series_tab_icon.ico'))
-        self.path_to_favorites_icon = path.abspath(path.join(path.dirname(__file__), 'Images/favorite_tab_icon.ico'))
-        self.path_to_fav_colour_icon = path.abspath(path.join(path.dirname(__file__), 'Images/favorite_tab_icon_colour.ico'))
-        self.path_to_online_status_icon = path.abspath(path.join(path.dirname(__file__), 'Images/online_status.png'))
-        self.path_to_offline_status_icon = path.abspath(path.join(path.dirname(__file__), 'Images/offline_status.png'))
-        self.path_to_maybe_status_icon = path.abspath(path.join(path.dirname(__file__), 'Images/maybe_status.png'))
-        self.path_to_unknown_status_icon = path.abspath(path.join(path.dirname(__file__), 'Images/unknown_status.png'))
-        self.path_to_info_icon      = path.abspath(path.join(path.dirname(__file__), 'Images/info_tab_icon.ico'))
-        self.path_to_settings_icon  = path.abspath(path.join(path.dirname(__file__), 'Images/settings_tab_icon.ico'))
-
-        self.path_to_search_icon    = path.abspath(path.join(path.dirname(__file__), 'Images/search_bar_icon.ico'))
-        self.path_to_sorting_icon   = path.abspath(path.join(path.dirname(__file__), 'Images/sorting_icon.ico'))
-        self.path_to_clear_btn_icon = path.abspath(path.join(path.dirname(__file__), 'Images/clear_button_icon.ico'))
-        self.path_to_go_back_icon   = path.abspath(path.join(path.dirname(__file__), 'Images/go_back_icon.ico'))
-
-        self.path_to_account_icon       = path.abspath(path.join(path.dirname(__file__), 'Images/account_manager_icon.ico'))
-        self.path_to_mediaplayer_icon   = path.abspath(path.join(path.dirname(__file__), 'Images/film_camera_icon.ico'))
+        self.path_to_account_icon           = path.abspath(path.join(path.dirname(__file__), 'Images/account_manager_icon.ico'))
+        self.path_to_mediaplayer_icon       = path.abspath(path.join(path.dirname(__file__), 'Images/film_camera_icon.ico'))
 
         self.setWindowIcon(QIcon(self.path_to_window_icon))
 
@@ -189,25 +189,150 @@ class IPTVPlayerApp(QMainWindow):
         #Load default settings after GUI has been initialized
         self.loadDataAtStartup()
 
-        #Add widgets to tabs
-        self.live_tab_layout.addWidget(self.category_search_bars["LIVE"], 0, 0)
-        self.live_tab_layout.addWidget(self.streaming_search_bars["LIVE"], 0, 1)
-        self.live_tab_layout.addWidget(self.category_list_live, 1, 0)
-        self.live_tab_layout.addWidget(self.streaming_list_live, 1, 1)
-        self.live_tab_layout.addWidget(self.live_info_box, 0, 2, 2, 1)
+        #Create live tv tab splitter
+        live_splitter = QSplitter(Qt.Horizontal)
 
-        self.movies_tab_layout.addWidget(self.category_search_bars["Movies"], 0, 0)
-        self.movies_tab_layout.addWidget(self.streaming_search_bars["Movies"], 0, 1)
-        self.movies_tab_layout.addWidget(self.category_list_movies, 1, 0)
-        self.movies_tab_layout.addWidget(self.streaming_list_movies, 1, 1)
-        self.movies_tab_layout.addWidget(self.movies_info_box, 0, 2, 2, 1)
+        # Column 0 widget (category)
+        live_category_container = QWidget()
+        live_category_layout = QVBoxLayout(live_category_container)
+        live_category_layout.setContentsMargins(0, 0, 0, 0)
+        live_category_layout.addWidget(self.category_search_bars["LIVE"])
+        live_category_layout.addWidget(self.category_list_live)
 
-        self.series_tab_layout.addWidget(self.category_search_bars["Series"], 0, 0)
-        self.series_tab_layout.addWidget(self.streaming_search_bars["Series"], 0, 1)
-        self.series_tab_layout.addWidget(self.category_list_series, 1, 0)
-        self.series_tab_layout.addWidget(self.streaming_list_series, 1, 1)
-        self.series_tab_layout.addWidget(self.series_info_box, 0, 2, 2, 1)
+        # Set width limits
+        live_category_container.setMinimumWidth(150)
+
+        # Column 1 widget (streaming)
+        live_streaming_container = QWidget()
+        live_streaming_layout = QVBoxLayout(live_streaming_container)
+        live_streaming_layout.setContentsMargins(0, 0, 0, 0)
+        live_streaming_layout.addWidget(self.streaming_search_bars["LIVE"])
+        live_streaming_layout.addWidget(self.streaming_list_live)
+
+        # Set width limits
+        live_streaming_container.setMinimumWidth(150)
+
+        # Column 2 widget (live info)
+        live_info_box_container = QWidget()
+        live_info_box_layout = QVBoxLayout(live_info_box_container)
+        live_info_box_layout.setContentsMargins(0, 0, 0, 0)
+        live_info_box_layout.addWidget(self.live_info_box)
+
+        # Set width limits
+        live_info_box_container.setMinimumWidth(300)
+
+        # Add widgets to splitter
+        live_splitter.addWidget(live_category_container)
+        live_splitter.addWidget(live_streaming_container)
+        live_splitter.addWidget(live_info_box_container)
+
+        # Stretch ratios (initial splitter sizes)
+        live_splitter.setSizes([200, 200, 300])  # Initial widths
+
+        live_splitter.setCollapsible(0, False)  # Prevent collapsing column 0
+        live_splitter.setCollapsible(1, False)  # Prevent collapsing column 1
+        live_splitter.setCollapsible(2, False)  # prevent collapsing column 2
+
+        # Add splitter to live tab layout
+        self.live_tab_layout.addWidget(live_splitter)
+
+
+        #Create movies tab splitter
+        movies_splitter = QSplitter(Qt.Horizontal)
+
+        # Column 0 widget (category)
+        movies_category_container = QWidget()
+        movies_category_layout = QVBoxLayout(movies_category_container)
+        movies_category_layout.setContentsMargins(0, 0, 0, 0)
+        movies_category_layout.addWidget(self.category_search_bars["Movies"])
+        movies_category_layout.addWidget(self.category_list_movies)
+
+        # Set width limits
+        movies_category_container.setMinimumWidth(150)
+
+        # Column 1 widget (streaming)
+        movies_streaming_container = QWidget()
+        movies_streaming_layout = QVBoxLayout(movies_streaming_container)
+        movies_streaming_layout.setContentsMargins(0, 0, 0, 0)
+        movies_streaming_layout.addWidget(self.streaming_search_bars["Movies"])
+        movies_streaming_layout.addWidget(self.streaming_list_movies)
+
+        # Set width limits
+        movies_streaming_container.setMinimumWidth(150)
+
+        # Column 2 widget (movies info)
+        movies_info_box_container = QWidget()
+        movies_info_box_layout = QVBoxLayout(movies_info_box_container)
+        movies_info_box_layout.setContentsMargins(0, 0, 0, 0)
+        movies_info_box_layout.addWidget(self.movies_info_box)
+
+        # Set width limits
+        movies_info_box_container.setMinimumWidth(350)
+
+        # Add widgets to splitter
+        movies_splitter.addWidget(movies_category_container)
+        movies_splitter.addWidget(movies_streaming_container)
+        movies_splitter.addWidget(movies_info_box_container)
+
+        # Stretch ratios (initial splitter sizes)
+        movies_splitter.setSizes([200, 200, 300])  # Initial widths
+
+        movies_splitter.setCollapsible(0, False)  # Prevent collapsing column 0
+        movies_splitter.setCollapsible(1, False)  # Prevent collapsing column 1
+        movies_splitter.setCollapsible(2, False)  # prevent collapsing column 2
+
+        # Add splitter to movies tab layout
+        self.movies_tab_layout.addWidget(movies_splitter)
+
+
+        #Create series tab splitter
+        series_splitter = QSplitter(Qt.Horizontal)
+
+        # Column 0 widget (category)
+        series_category_container = QWidget()
+        series_category_layout = QVBoxLayout(series_category_container)
+        series_category_layout.setContentsMargins(0, 0, 0, 0)
+        series_category_layout.addWidget(self.category_search_bars["Series"])
+        series_category_layout.addWidget(self.category_list_series)
+
+        # Set width limits
+        series_category_container.setMinimumWidth(150)
+
+        # Column 1 widget (streaming)
+        series_streaming_container = QWidget()
+        series_streaming_layout = QVBoxLayout(series_streaming_container)
+        series_streaming_layout.setContentsMargins(0, 0, 0, 0)
+        series_streaming_layout.addWidget(self.streaming_search_bars["Series"])
+        series_streaming_layout.addWidget(self.streaming_list_series)
+
+        # Set width limits
+        series_streaming_container.setMinimumWidth(150)
+
+        # Column 2 widget (series info)
+        series_info_box_container = QWidget()
+        series_info_box_layout = QVBoxLayout(series_info_box_container)
+        series_info_box_layout.setContentsMargins(0, 0, 0, 0)
+        series_info_box_layout.addWidget(self.series_info_box)
+
+        # Set width limits
+        series_info_box_container.setMinimumWidth(350)
+
+        # Add widgets to splitter
+        series_splitter.addWidget(series_category_container)
+        series_splitter.addWidget(series_streaming_container)
+        series_splitter.addWidget(series_info_box_container)
+
+        # Stretch ratios (initial splitter sizes)
+        series_splitter.setSizes([200, 200, 300])  # Initial widths
+
+        series_splitter.setCollapsible(0, False)  # Prevent collapsing column 0
+        series_splitter.setCollapsible(1, False)  # Prevent collapsing column 1
+        series_splitter.setCollapsible(2, False)  # prevent collapsing column 2
+
+        # Add splitter to series tab layout
+        self.series_tab_layout.addWidget(series_splitter)
         
+        #Add iptv info text to info tab
         self.info_tab_layout.addWidget(self.iptv_info_text)
 
         #Create main widget
@@ -290,9 +415,9 @@ class IPTVPlayerApp(QMainWindow):
 
         #Create layouts for tabs
         self.home_tab_layout        = QVBoxLayout(home_tab)
-        self.live_tab_layout        = QGridLayout(live_tab)
-        self.movies_tab_layout      = QGridLayout(movies_tab)
-        self.series_tab_layout      = QGridLayout(series_tab)
+        self.live_tab_layout        = QVBoxLayout(live_tab)
+        self.movies_tab_layout      = QVBoxLayout(movies_tab)
+        self.series_tab_layout      = QVBoxLayout(series_tab)
         self.favorites_tab_layout   = QGridLayout(favorites_tab)
         self.info_tab_layout        = QVBoxLayout(info_tab)
         self.settings_layout        = QGridLayout(settings_tab)

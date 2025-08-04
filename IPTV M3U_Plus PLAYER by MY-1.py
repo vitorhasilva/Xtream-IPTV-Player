@@ -23,7 +23,7 @@ from PyQt5.QtWidgets import (
     QListWidget, QWidget, QFileDialog, QCheckBox, QSizePolicy, QHBoxLayout,
     QDialog, QFormLayout, QDialogButtonBox, QTabWidget, QListWidgetItem,
     QSpinBox, QMenu, QAction, QTextEdit, QGridLayout, QMessageBox, QListView,
-    QTreeWidget, QTreeWidgetItem, QTreeView, QAction, QMenu, QComboBox
+    QTreeWidget, QTreeWidgetItem, QTreeView, QAction, QMenu, QComboBox, QSplitter
 )
 
 from AccountManager import AccountManager
@@ -194,7 +194,6 @@ class IPTVPlayerApp(QMainWindow):
         self.live_tab_layout.addWidget(self.streaming_search_bars["LIVE"], 0, 1)
         self.live_tab_layout.addWidget(self.category_list_live, 1, 0)
         self.live_tab_layout.addWidget(self.streaming_list_live, 1, 1)
-        # self.live_tab_layout.addWidget(self.live_EPG_info_box, 0, 2, 2, 1)
         self.live_tab_layout.addWidget(self.live_info_box, 0, 2, 2, 1)
 
         self.movies_tab_layout.addWidget(self.category_search_bars["Movies"], 0, 0)
@@ -1976,30 +1975,32 @@ class IPTVPlayerApp(QMainWindow):
                 self.animate_progress(0, 100, "Loading player for streaming")
 
                 if is_linux:
-                    # Ensure the external player command is executable
+                    #Ensure the external player command is executable
                     if not os.access(self.external_player_command, os.X_OK):
                         self.animate_progress(0, 100, "Selected player is not executable")
                         return
-                    
+
+                    #Default support, run with VLC user agent argument
+                    user_agent_argument = f"--http-user-agent=\"{self.current_user_agent}\""
+                    player_cmd = f"{self.external_player_command} {user_agent_argument} \"{url}\""
+                
                 if is_windows:
-                    # Support PotPlayer with the proper command line
+                    #Support PotPlayer with the proper command line
                     if "PotPlayerMini64.exe" in self.external_player_command:
                         user_agent_argument = f"/user_agent=\"{self.current_user_agent}\""
-                        pot_player = f"{self.external_player_command} \"{url}\" {user_agent_argument}"
-                        subprocess.Popen(pot_player)
-                        return
+                        player_cmd = f"{self.external_player_command} \"{url}\" {user_agent_argument}"
                     
-                    # Support MPV with the proper command line
-                    if ("mpv.exe" in self.external_player_command) or ("mpv.com" in self.external_player_command):
+                    #Support MPV with the proper command line
+                    elif ("mpv.exe" in self.external_player_command) or ("mpv.com" in self.external_player_command):
                         user_agent_argument = f"--user-agent=\"{self.current_user_agent}\""
-                        mpv_player = f"{self.external_player_command} {user_agent_argument} \"{url}\""
-                        subprocess.Popen(mpv_player)
-                        return
+                        player_cmd = f"{self.external_player_command} {user_agent_argument} \"{url}\""
                 
-                # no specific support, just run with VLC user agent argument
-                user_agent_argument = f"--http-user-agent=\"{self.current_user_agent}\""
-                default_player = f"{self.external_player_command} {user_agent_argument} \"{url}\""
-                subprocess.Popen(default_player)
+                    #Default support, run with VLC user agent argument
+                    else:
+                        user_agent_argument = f"--http-user-agent=\"{self.current_user_agent}\""
+                        player_cmd = f"{self.external_player_command} {user_agent_argument} \"{url}\""
+
+                subprocess.Popen(player_cmd)
             except Exception as e:
                 self.animate_progress(0, 100, "Failed playing stream")
                 print(f"Failed playing stream [{url}]: {e}")

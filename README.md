@@ -5,6 +5,8 @@ This IPTV player, built with Python and PyQt5, supports M3U_plus playlists and X
 
 > Feel free to report issues when encountering any problems: [Issues](https://github.com/Youri666/Xtream-m3u_plus-IPTV-Player/issues)
 
+> For sharing ideas and general questions: [Discussions](https://github.com/Youri666/Xtream-m3u_plus-IPTV-Player/discussions)
+
 # Download
 Download the latest version here: [Latest releases](https://github.com/Youri666/Xtream-m3u_plus-IPTV-Player/releases)
 
@@ -20,6 +22,7 @@ Download the latest version here: [Latest releases](https://github.com/Youri666/
 - **Search bar history:** By using the up and down keys you can access the previously searched texts in the search bars.
 - **Sorting playlists:** Each list can be sorted A-Z, Z-A or sorting can be disabled. The default sorting can be configured in the settings tab.
 - **Info tab:** Information about IPTV account status.
+- **Adjustable column widths**: Adjust the column widths in each tab to your liking by dragging the edges.
 - **Error Handling:** Graceful handling of loading issues.
 - **External Player Support:** Play channels/movies/series using VLC or SMPlayer.
 - **Recommended Player:** For optimal performance, use VLC media player. Download it at: https://www.videolan.org/vlc/
@@ -32,7 +35,9 @@ Download the latest version here: [Latest releases](https://github.com/Youri666/
 - **Improve startup loading time:** Improve loading time at startup by optionally loading the IPTV data from cache.
 - **Dark theme**
 
-# Screenshots
+<details>
+<summary><h1><strong>Screenshots</strong></h1></summary>
+  
 **Live TV showing EPG data**
 ![Image](https://github.com/user-attachments/assets/c82f0759-29d8-4b3e-a462-59581523e1d8)
 
@@ -51,8 +56,11 @@ Download the latest version here: [Latest releases](https://github.com/Youri666/
 **Save your IPTV account and optionally auto-select at startup**
 ![Image](https://github.com/user-attachments/assets/678582bc-8af9-499b-b601-38b7786b57bf)
 
-# How To compile the source code
+</details>
 
+<details>
+<summary><h1><strong>How To compile the source code</strong></h1></summary>
+  
 ## Windows Project Setup Instructions
 
 ### 1. Install latest Python 3
@@ -114,3 +122,5 @@ pyinstaller --version
 - Make the SH script executable with the command:\
 `chmod +x build_iptv_player.sh`
 - Run the [./build_iptv_player.sh](build_iptv_player.sh) file to start the process.
+
+</details>

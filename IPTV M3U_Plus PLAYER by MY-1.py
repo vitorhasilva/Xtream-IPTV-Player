@@ -2119,6 +2119,10 @@ class IPTVPlayerApp(QMainWindow):
                     elif ("mpv.exe" in self.external_player_command) or ("mpv.com" in self.external_player_command):
                         user_agent_argument = f"--user-agent=\"{self.current_user_agent}\""
                         player_cmd = f"{self.external_player_command} {user_agent_argument} \"{url}\""
+
+                    # Support MPC-HC with the proper command line
+                    elif "mpc-hc64.exe" in self.external_player_command:
+                        player_cmd = f"{self.external_player_command} \"{url}\""
                 
                     #Default support, run with VLC user agent argument
                     else:
@@ -2364,3 +2368,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

@@ -31,7 +31,7 @@ from CustomPyQtWidgets import LiveInfoBox, MovieInfoBox, SeriesInfoBox
 import Threadpools
 from Threadpools import FetchDataWorker, SearchWorker, OnlineWorker, EPGWorker, MovieInfoFetcher, SeriesInfoFetcher, ImageFetcher
 
-CURRENT_VERSION = "V1.03.00"
+CURRENT_VERSION = "V1.03.01"
 
 is_windows  = sys.platform.startswith('win')
 is_mac      = sys.platform.startswith('darwin')
@@ -2368,4 +2368,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 

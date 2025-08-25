@@ -36,6 +36,38 @@ Download the latest version here: [Latest releases](https://github.com/Youri666/
 - **Dark theme**
 
 <details>
+<summary><h1><strong>FAQ</strong></h1></summary>
+
+<details>
+<summary><strong>My Live TV doesn't work, but my movies and series do work. How can I fix this?</strong></summary>
+
+Some IPTV providers require a different URL format than the default, therefore you need to change this URL format. Go to the account manager inside the IPTV player. And in the live tv format line replace the URL format with one of the following URL formats:
+
+```{server}/{username}/{password}/{stream_id}```
+
+```{server}/{username}/{password}/{stream_id}.ts```
+
+```{server}/{username}/{password}/{stream_id}.m3u8```
+
+```{server}/{username}/{password}/live/{stream_id}```
+
+```{server}/{username}/{password}/live/{stream_id}.ts```
+
+```{server}/{username}/{password}/live/{stream_id}.m3u8```
+
+```{server}/live/{username}/{password}/{stream_id}```
+
+```{server}/live/{username}/{password}/{stream_id}.ts```
+
+```{server}/live/{username}/{password}/{stream_id}.m3u8```
+
+If none of these work, more attention is needed and you should create an [Issues](https://github.com/Youri666/Xtream-m3u_plus-IPTV-Player/issues).
+
+</details>
+
+</details>
+
+<details>
 <summary><h1><strong>Screenshots</strong></h1></summary>
   
 **Live TV showing EPG data**

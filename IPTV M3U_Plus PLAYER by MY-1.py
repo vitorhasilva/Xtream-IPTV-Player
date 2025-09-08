@@ -37,7 +37,7 @@ is_windows  = sys.platform.startswith('win')
 is_mac      = sys.platform.startswith('darwin')
 is_linux    = sys.platform.startswith('linux')
 
-GITHUB_REPO = "vitorhasilva/Xtream-IPTV-Player"
+GITHUB_REPO = "Youri666/Xtream-IPTV-Player"
 
 class IPTVPlayerApp(QMainWindow):
     def __init__(self):

@@ -3,10 +3,12 @@
 
 This IPTV player, built with Python and PyQt5, supports M3U_plus playlists and Xtream Codes API, allowing users to manage and play IPTV channels, movies, and series.
 
-> Feel free to report issues when encountering any problems: [Issues](https://github.com/vitorhasilva/Xtream-IPTV-Player/issues)
+> Feel free to report issues when encountering any problems: [Issues](https://github.com/Youri666/Xtream-m3u_plus-IPTV-Player/issues)
+
+> For sharing ideas and general questions: [Discussions](https://github.com/Youri666/Xtream-m3u_plus-IPTV-Player/discussions)
 
 # Download
-Download the latest version here: [Latest releases](https://github.com/vitorhasilva/Xtream-IPTV-Player/releases)
+Download the latest version here: [Latest releases](https://github.com/Youri666/Xtream-m3u_plus-IPTV-Player/releases)
 
 # Features
 - **Supports Windows, Linux and Mac OS**
@@ -14,8 +16,8 @@ Download the latest version here: [Latest releases](https://github.com/vitorhasi
 - **Xtream Codes API:** Log in with Xtream credentials and dynamically load content.
 - **Categorized Playlists:** Organized into Live TV, Movies, and Series tabs for easy navigation.
 - **Favorites:** Add items to favorite and find them in the 'Favorites' category.
-- **Catch-Up:** Possibility of accessing past programs. 
 - **EPG Option:** Access and download Electronic Program Guide for live TV channels.
+- **Catch-Up:** Possibility of accessing past programs (When it is allowed by XTream API or XTream account).
 - **Movies and series information:** Additional movies and series information e.g. movie/series cover, description, cast, trailer, TMDB, etc.
 - **Series navigation:** Access series categories and specific episodes with efficient 'Go Back' functionality in series playlist.
 - **Search bar history:** By using the up and down keys you can access the previously searched texts in the search bars.
@@ -28,6 +30,11 @@ Download the latest version here: [Latest releases](https://github.com/vitorhasi
 - **Recommended Player:** For optimal performance, use SMPlayer. Download it at: https://www.smplayer.info
 
 # Future plans
+- **M3U file support**: Select M3U file or URL to M3U file to load data from.
+- **Home tab:** Home tab with previously watched and popular movies and series.
+- **TMDB support:** Much more information about movies and series with the TMDB API.
+- **Improve startup loading time:** Improve loading time at startup by optionally loading the IPTV data from cache.
+- **Dark theme**
 
 <details>
 <summary><h1><strong>FAQ</strong></h1></summary>
@@ -55,7 +62,7 @@ Some IPTV providers require a different URL format than the default, therefore y
 
 ```{server}/live/{username}/{password}/{stream_id}.m3u8```
 
-If none of these work, more attention is needed and you should create an [Issues](https://github.com/vitorhasilva/Xtream-IPTV-Player/issues).
+If none of these work, more attention is needed and you should create an [Issues](https://github.com/Youri666/Xtream-m3u_plus-IPTV-Player/issues).
 
 </details>
 

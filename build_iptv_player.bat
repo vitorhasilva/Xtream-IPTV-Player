@@ -89,6 +89,7 @@ REM Run PyInstaller directly with all necessary options and added data files
   --add-data "Images/online_status.png;Images" ^
   --add-data "Images/maybe_status.png;Images" ^
   --add-data "Images/offline_status.png;Images" ^
+  --add-data "Images/catchup_icon.ico;Images" ^
   --add-data "Threadpools.py;." ^
   --add-data "CustomPyQtWidgets.py;." ^
   --add-data "AccountManager.py;." ^

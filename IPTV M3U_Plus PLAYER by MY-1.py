@@ -9,7 +9,7 @@ import re
 import json
 import html
 from lxml import etree, html
-from datetime import datetime
+from datetime import datetime, timedelta
 from dateutil import parser, tz
 import xml.etree.ElementTree as ET
 from PyQt5.QtGui import QIcon, QFont, QImage, QPixmap, QColor, QDesktopServices
@@ -31,7 +31,7 @@ from CustomPyQtWidgets import LiveInfoBox, MovieInfoBox, SeriesInfoBox
 import Threadpools
 from Threadpools import FetchDataWorker, SearchWorker, OnlineWorker, EPGWorker, MovieInfoFetcher, SeriesInfoFetcher, ImageFetcher
 
-CURRENT_VERSION = "V1.04.00"
+CURRENT_VERSION = "V1.04.01"
 
 is_windows  = sys.platform.startswith('win')
 is_mac      = sys.platform.startswith('darwin')
@@ -114,6 +114,9 @@ class IPTVPlayerApp(QMainWindow):
         # --- Catch-up (selected channel state) ---
         self.current_tv_archive = 0            #1 = Supports catch-up;0 = No
         self.current_tv_archive_duration = 0   #No. of allowed file days
+
+        # Difference between server and local times
+        self.server_time_offset = timedelta(0)
 
         #Make history list index a list in order to achieve pass by reference
         self.streaming_search_history_list      = []
@@ -1197,6 +1200,19 @@ class IPTVPlayerApp(QMainWindow):
         #Process IPTV info
         user_info   = iptv_info.get("user_info", {})
         server_info = iptv_info.get("server_info", {})
+        
+        # Calculate offset between server and local time
+        time_now_str = server_info.get("time_now")
+        
+        if time_now_str:
+            try:
+                server_now = datetime.strptime(time_now_str, "%Y-%m-%d %H:%M:%S")
+                local_now = datetime.now()
+                self.server_time_offset = server_now - local_now
+            except Exception:
+                self.server_time_offset = timedelta(0)
+        else:
+            self.server_time_offset = timedelta(0)
 
         hostname    = server_info.get("url", "Unknown")
         port        = server_info.get("port", "Unknown")
@@ -2531,10 +2547,13 @@ class IPTVPlayerApp(QMainWindow):
         if not start_dt or not stop_dt:
             return
         
-        # Formato Xtream: YYYY-MM-DD:HH-MM
-        start_str = start_dt.strftime("%Y-%m-%d:%H-%M")
+        # Duration uses original times
         duration_minutes = int((stop_dt - start_dt).total_seconds() // 60)
-
+        
+        # Adjust start time with server offset and format for Xtream
+        start_dt = start_dt + self.server_time_offset
+        start_str = start_dt.strftime("%Y-%m-%d:%H-%M")
+        
         #Channel ID currently selected (obtained from the channel list item)
         stream_id = self.prev_clicked_streaming_item.data(Qt.UserRole)['stream_id']
 
